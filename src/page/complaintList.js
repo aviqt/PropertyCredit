@@ -7,31 +7,28 @@ import TopNavBar from './components/topNavBar';
 import Footer from './components/footer';
 import ListView from './components/listView';
 import {get} from '../utils/request';
-import {loginToSetToken} from '../utils/func';
 
 
-class VoteList extends Component {
+class ComplaintList extends Component {
   constructor(props) {  
     super(props);  
     this.state = { 
 	  keyWords:'',
+  	  listType:'List',
 	  rows:10,
-	  showVoted:1,
-	  hasToken:!(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' )
 	}
   }
-  setShowVoted = (value) =>{
+  setListType = (value) =>{
     this.setState({
-  	  showVoted:value,
+  	  listType:value,
     })
   }
   formatDate(timeStamp,str){
-	timeStamp = timeStamp === null?Date.now():timeStamp;
 	let date = new Date(timeStamp);
 	return [
 	  date.getFullYear(),
-	  (date.getMonth() + 1) > 9 ? date.getMonth() + 1 : '0' + (date.getMonth() + 1),
-	  date.getDate() > 9 ? date.getDate() :'0' + date.getDate()
+	  (date.getMonth()+1) > 9 ? (date.getMonth()+1) : '0' + (date.getMonth()+1),
+	  (date.getDate() > 9 ? date.getDate() :'0' + date.getDate()) + ' ' + (date.getHours()>9?date.getHours():('0' + date.getHours())) + ':' + (date.getMinutes()>9?date.getMinutes():('0' + date.getMinutes()))
 	].join(str);
   }
   renderHeightlightKeyWords(text,keyWords){
@@ -44,21 +41,21 @@ class VoteList extends Component {
 	window.postMessage('back');
   }
   render() {
-	  
-    const {keyWords,rows,showVoted} = this.state;
-	let url = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectList?isvoted=' + showVoted + '&keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
+    const {keyWords,rows,listType} = this.state;
+	let url = sessionStorage.apiUrl + '/api/Complaint/' + listType +'?keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
+
 	const tabList = [
-	  {value:1,title:'待投表决'},
-	  {value:2,title:'已投表决'},
+	  {value:'List',title:'我的投诉'},
+	  {value:'TodoList',title:'投诉确认'},
 	];
     return (
 	  <div>
-		<TopNavBar title='投票表决' addPage='/vote/add' />
+		<TopNavBar title='投诉列表'  addPage='/complaint/add'/>
 		<div className='mainBox' style={{bottom:0}}>
 		  <div className='tabMenu'>
 		    {tabList.map(item =>
-			  <div key={item.value} onClick={this.setShowVoted.bind(this,item.value)}>
-			    <span className={item.value === this.state.showVoted?'tabActive':''}>
+			  <div key={item.value} onClick={this.setListType.bind(this,item.value)}>
+			    <span className={item.value === listType?'tabActive':''}>
 				  {item.title}
 				</span>
 			  </div>
@@ -66,7 +63,7 @@ class VoteList extends Component {
 		  </div>
 		  <SearchBar
 		    clear={false}
-			placeholder='投票标题、发起人'
+			placeholder='搜索'
 			onSubmit={keyWords => {this.setState({keyWords})}}
 			onClear={keyWords => {this.setState({keyWords})}}
 		  />
@@ -76,13 +73,12 @@ class VoteList extends Component {
 			page = {this}
 			url={url}
 		    row ={(item,index) => 
-		  	  <Link to={{pathname:'/vote/page/' + item.Id ,query:{voted:showVoted === 1}}} key={'vote-item'+index}>
+		  	  <Link to={{pathname:`/complaint/detail/${item.Id}`}} key={index}>
 		  	    <div className='item'>
-		  	  	  <strong>{this.renderHeightlightKeyWords(item.Title,keyWords)}</strong>
-		  	  	  <span>发起人：{item.CreatorName}</span>
-		  	  	  <span>&nbsp;</span>
-		  	  	  <span>开始日期：{this.formatDate(item.StartTime,'-')}</span>
-		  	  	  <span>截止日期：{this.formatDate(item.EndTime,'-')}</span>
+		  	  	  <strong>{this.renderHeightlightKeyWords(item.ResidenceName,keyWords)}</strong>
+				  <div className={`status status_${item.ApplyStatus}`}>{item.ApplyStatusStr}</div>
+				  <div className='content'>{item.Content}强制使用 action 来描述所有变化带来的好处是可以清晰地知道应用中到底发生了什么。 </div>
+		  	  	  <span>{this.formatDate(item.CreatorTime,'-')}</span>
 		  	    </div>
 		  	  </Link>
 			}
@@ -96,4 +92,4 @@ class VoteList extends Component {
 
 
 
-export default VoteList;
+export default ComplaintList;

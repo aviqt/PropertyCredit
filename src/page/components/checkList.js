@@ -32,7 +32,7 @@ class CheckList extends Component{
         {checkList.map((item,index) => 
           <div key={'item'+index} style={item.selected?style.itemActive:style.item} onClick={this.itemClick.bind(this,index)}>
   	      {item.name}
-  		  <span style={style.span}>
+  		  <span style={item.selected?style.spanActive:style.span}>
   			{item.selected?<Icon type='check-circle' color="#0cbc0a" />:''}
   		  </span>
           </div>
@@ -71,6 +71,15 @@ const style ={
 	display:'block',
 	borderRadius:'50%',
 	border:'1px solid #ddd'
+  },
+  spanActive:{
+  	position:"absolute",
+	left:10,
+	top:14,
+	height:20,
+	width:20,
+	display:'block',
+	borderRadius:'50%',
   },
 }
 export default CheckList;

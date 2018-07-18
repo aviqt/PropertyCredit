@@ -10,14 +10,12 @@ import {get} from '../utils/request';
 import {loginToSetToken} from '../utils/func';
 
 
-class VoteList extends Component {
+class VoteListAll extends Component {
   constructor(props) {  
     super(props);  
     this.state = { 
 	  keyWords:'',
 	  rows:10,
-	  showVoted:1,
-	  hasToken:!(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' )
 	}
   }
   setShowVoted = (value) =>{
@@ -46,24 +44,12 @@ class VoteList extends Component {
   render() {
 	  
     const {keyWords,rows,showVoted} = this.state;
-	let url = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectList?isvoted=' + showVoted + '&keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
-	const tabList = [
-	  {value:1,title:'待投表决'},
-	  {value:2,title:'已投表决'},
-	];
+	let url = sessionStorage.apiUrl + '/api/Vote/VoteProjectAllList?keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
+
     return (
 	  <div>
-		<TopNavBar title='投票表决' addPage='/vote/add' />
+		<TopNavBar title='投票广场'  addPage='/vote/add' />
 		<div className='mainBox' style={{bottom:0}}>
-		  <div className='tabMenu'>
-		    {tabList.map(item =>
-			  <div key={item.value} onClick={this.setShowVoted.bind(this,item.value)}>
-			    <span className={item.value === this.state.showVoted?'tabActive':''}>
-				  {item.title}
-				</span>
-			  </div>
-			)}
-		  </div>
 		  <SearchBar
 		    clear={false}
 			placeholder='投票标题、发起人'
@@ -71,7 +57,7 @@ class VoteList extends Component {
 			onClear={keyWords => {this.setState({keyWords})}}
 		  />
 		  <ListView
-		    style = {{top:100}}
+		    style = {{top:50}}
 		    className = 'listBox' 
 			page = {this}
 			url={url}
@@ -96,4 +82,4 @@ class VoteList extends Component {
 
 
 
-export default VoteList;
+export default VoteListAll;

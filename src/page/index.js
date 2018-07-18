@@ -23,7 +23,6 @@ const menuList = [
 		];
 		
 		
-		
 class Index extends Component {
   constructor(props) {  
     super(props);  

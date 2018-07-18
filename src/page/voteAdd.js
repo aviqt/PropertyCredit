@@ -5,7 +5,6 @@ import {
 	Button,
 	TextareaItem,
 	InputItem,
-	ImagePicker,
 	Picker,
 	Switch,
 	WingBlank,
@@ -22,6 +21,7 @@ import ImgUpload from './components/imgUpload';
 const CheckboxItem = Checkbox.CheckboxItem;
 const nowTimeStamp = Date.now();
 const now = new Date(nowTimeStamp);
+const nowPlus = new Date(nowTimeStamp + (24*3600*1000));
 const electoralRules = [
 	{value:'不限',label:'不限',children:[]},
 	{value:'规则一',label:'规则一',children:[]},
@@ -44,7 +44,7 @@ class VoteAdd extends Component {
 	  describe:'',
 	  eventPhotos:eventPhotos,
 	  startDate:now,
-	  endDate:now ,
+	  endDate:nowPlus,
 	  isMulti:false,
 	  isOrot:true,
 	  maximum:[2],
@@ -85,16 +85,18 @@ class VoteAdd extends Component {
 	this.setState({residenceList:residenceList})
   }
   getResidenceList(){
-	get('/api/Vote/ResidenceList')
+	get(sessionStorage.apiUrl + '/api/Residence/UserResidenceList',this)
 	.then(res => {
+	  if(!res.Data)return false;
 	  let residenceList = [];
+	  console.log(res);
 	  res.Data.map(item => {
 		let residenceOption = [];
-		residenceOption.id = item.Id;
-		residenceOption.Name = item.Name;
+		residenceOption.id = item.ResidenceId;
+		residenceOption.Name = item.ResidenceName;
 		residenceOption.checked = false;
 		residenceList.push(residenceOption);
-		return false
+		return false;
 	  })
 	  this.setState({residenceList:residenceList});
 	})
@@ -110,9 +112,36 @@ class VoteAdd extends Component {
 	if(files.length === 0)return false;
 
   }
-
+  checkForm(){
+	const {
+	  title,
+	  residenceList,
+	  shortListStr,
+	  startDate,
+	  endDate,
+	} = this.state;
+	//console.log(startDate >= endDate)
+	if(startDate >= endDate){
+	  Toast.fail("设置的投票日期不合法.");
+	  return false;
+	}
+	if(title.replace(/\s+/g,'').length <= 0){
+	  Toast.fail("请输入标题.");
+	  return false;
+	}
+	if(residenceList.filter(item => item.checked).length <= 0){
+	  Toast.fail("至少选择一个小区作为投票范围.");
+	  return false;
+	}
+	if(shortListStr.split(',').filter(item => item.replace(/\s+/g,'')).length <= 1){
+	  Toast.fail("至少需要添加两个投票选项.");
+	  return false;
+	}
+	return true;
+  }
   addVoteBtnClick = () => {
 	if(this.state.addLoading) return false;
+	if(!this.checkForm())return false;
 	this.setState({
 	  addLoading:true,
 	})
@@ -131,6 +160,7 @@ class VoteAdd extends Component {
 	  return false;
 	});
 	voteRangeDto += '"}';
+	console.log(voteRangeDto);
 	let data = {
 	  Title:this.state.title,
 	  Content:this.state.describe,
@@ -148,8 +178,8 @@ class VoteAdd extends Component {
 	};
 	//console.log(data);
 	//console.log(JSON.stringify(data));
-	let url ='/api/Vote/AddVoteProject';
-	post(url,data)
+	let url = sessionStorage.apiUrl + '/api/Vote/AddVoteProject';
+	post(url,data,this)
 	.then(res => {
 	  console.log(res.Data);
 	  if(res.Data === 'OK'){
@@ -199,102 +229,102 @@ class VoteAdd extends Component {
     return (
 	  <div>
 		<TopNavBar title='添加投票' showLC/>
-		<List className='addVoteForm'>
-		
-		  <InputItem
-		    clear
-			placeholder = '请输入'
-		    value={this.state.title}
-		    onChange={title => this.setState({ title })}
-		  >投票标题</InputItem>
-		  <TextareaItem
-		    title='补充描述'
-			placeholder = '请输入'
-			rows='8'
-			autoHeight
-		    value={this.state.describe}
-		    onChange={describe => this.setState({ describe })}
-		  />
-		  <List.Item  arrow='horizontal'>活动图片</List.Item>
-
-		  <WingBlank style={{paddingTop:8}}>
-		    <ImgUpload toParent={this.getFileIds.bind(this)}/>
-		  </WingBlank>
-		  <InputOptionList 
-		    id='shortList_test' 
-			optionListStr={this.state.shortListStr} 
-			toParent={this.getShortListStr.bind(this)} 
-		  />
-		  
-		  <List.Item
-		    extra={<Switch 
-			  checked={this.state.isMulti}
-			  onClick={(isMulti) => this.setState({ isMulti })}
-			/>}
-		  >是否多选</List.Item>
-		  {this.renderMaximumPicker()}
-		  <List.Item
-		    extra={<Switch 
-			  checked={this.state.isAnonymous}
-			  onClick={(isAnonymous) => this.setState({ isAnonymous })}
-			/>}
-		  >是否匿名</List.Item>
-		  <DatePicker
-		    value={this.state.startDate}
-		    onChange={startDate => this.setState({ startDate })}
-		  >
-		    <List.Item arrow='horizontal'>开始日期</List.Item>
-		  </DatePicker>
-		  <DatePicker
-		    value={this.state.endDate}
-		    onChange={endDate => this.setState({ endDate })}
-		  >
-		    <List.Item arrow='horizontal'>结束日期</List.Item>
-		  </DatePicker>
-		  <Picker 
-		    data={electoralRules} 
-			cols={1} 
-			value={this.state.electoralRule}
-		    onChange={electoralRule => this.setState({ electoralRule })}
-		    onOk={electoralRule => this.setState({ electoralRule })}
-		  >
-            <List.Item style={{display:'none'}} arrow='horizontal'>选举规则</List.Item>
-          </Picker>
-		  <List.Item
-		    style={{display:'none'}}
-		    extra={<Switch 
-			checked={this.state.isOrot}
-			onClick={(isOrot) => this.setState({ isOrot })}
-			/>}
-		  >一房一票</List.Item>
-		  <List.Item style={{borderTop:'10px solid #ddd'}}  arrow='horizontal'>投票范围</List.Item>
-		  {this.state.residenceList.map((item,index) => 
-		    <CheckboxItem 
-				key = {'residenceItem'+index}
-				checked={item.checked} 
-				onChange={this.setVoteRange.bind(this,index)}
-			  >
-				{item.Name}
-			  </CheckboxItem>
-		  )}
+		<div className='formBox' >
+		  <List>
+		    <InputItem
+		      clear
+		  	  placeholder = '请输入'
+		      value={this.state.title}
+		      onChange={title => this.setState({ title })}
+		    >投票标题</InputItem>
+		    <TextareaItem
+		      title='补充描述'
+		  	  placeholder = '请输入'
+		  	  rows='8'
+		  	  autoHeight
+		      value={this.state.describe}
+		      onChange={describe => this.setState({ describe })}
+		    />
+		    <List.Item  arrow='horizontal'>活动图片</List.Item>
           
-		</List>
-		
-	    <div className='operationBtns'>
-		  <WingBlank>
-		    <WhiteSpace size='md' />
-		    <Button 
-			  loading={this.state.addLoading} 
-			  style={this.state.addLoading?style.loadingBtn:style.btn} 
-			  onClick={this.addVoteBtnClick}
-			>
-			  {this.state.addLoading?'提交中 Loading':'提交'}
-			</Button>
-		    <WhiteSpace size='md' />
-		    <Link to='/vote/list' className='am-button'><span>取消</span></Link>
-		    <WhiteSpace size='md' />
-		  </WingBlank>
-	    </div>
+		    <WingBlank style={{paddingTop:8}}>
+		      <ImgUpload toParent={this.getFileIds.bind(this)}/>
+		    </WingBlank>
+		    <InputOptionList 
+		      id='shortList_test' 
+		  	  optionListStr={this.state.shortListStr} 
+		  	  toParent={this.getShortListStr.bind(this)} 
+		    />
+		    
+		    <List.Item
+		      extra={<Switch 
+		  	  checked={this.state.isMulti}
+		  	  onClick={(isMulti) => this.setState({ isMulti })}
+		  	/>}
+		    >是否多选</List.Item>
+		    {this.renderMaximumPicker()}
+		    <List.Item
+		      extra={<Switch 
+		  	  checked={this.state.isAnonymous}
+		  	  onClick={(isAnonymous) => this.setState({ isAnonymous })}
+		  	/>}
+		    >是否匿名</List.Item>
+		    <DatePicker
+		      value={this.state.startDate}
+		      onChange={startDate => this.setState({ startDate })}
+		    >
+		      <List.Item arrow='horizontal'>开始日期</List.Item>
+		    </DatePicker>
+		    <DatePicker
+		      value={this.state.endDate}
+		      onChange={endDate => this.setState({ endDate })}
+		    >
+		      <List.Item arrow='horizontal'>结束日期</List.Item>
+		    </DatePicker>
+		    <Picker 
+		      data={electoralRules} 
+		  	  cols={1} 
+		  	  value={this.state.electoralRule}
+		      onChange={electoralRule => this.setState({ electoralRule })}
+		      onOk={electoralRule => this.setState({ electoralRule })}
+		    >
+              <List.Item style={{display:'none'}} arrow='horizontal'>选举规则</List.Item>
+            </Picker>
+		    <List.Item
+		      style={{display:'none'}}
+		      extra={<Switch 
+		  	  checked={this.state.isOrot}
+		  	  onClick={(isOrot) => this.setState({ isOrot })}
+		  	/>}
+		    >一房一票</List.Item>
+		    <List.Item style={{borderTop:'10px solid #ddd'}}  arrow='horizontal'>投票范围</List.Item>
+		    {this.state.residenceList.map((item,index) => 
+		      <CheckboxItem 
+		  		key = {'residenceItem'+index}
+		  		checked={item.checked} 
+		  		onChange={this.setVoteRange.bind(this,index)}
+		  	  >
+		  		{item.Name}
+		  	  </CheckboxItem>
+		    )}
+          
+		  </List>
+	      <div className='operationBtns'>
+		    <WingBlank>
+		      <WhiteSpace size='md' />
+		      <Button 
+		  	  loading={this.state.addLoading} 
+		  	  style={this.state.addLoading?style.loadingBtn:style.btn} 
+		  	  onClick={this.addVoteBtnClick}
+		  	>
+		  	  {this.state.addLoading?'提交中 Loading':'提交'}
+		  	</Button>
+		      <WhiteSpace size='md' />
+		      <Link to='/vote/list' className='am-button'><span>取 消</span></Link>
+		      <WhiteSpace size='md' />
+		    </WingBlank>
+	      </div>
+		</div>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 
 
-export default function request (method, url, body) {
+export default function request (method, url, body,currentPage) {
   method = method.toUpperCase();
   if (method === 'GET') {
     // fetch的GET不允许有body，参数只能放在url中
@@ -8,14 +8,13 @@ export default function request (method, url, body) {
   } else {
     body = body && JSON.stringify(body);
   }
-
   return fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       //'Access-Token': sessionStorage.getItem('access_token') || '' // 从sessionStorage中获取access token
-	  Authorization:'Bearer nuzvpevmPNOhmlAACsgDrgru4E4MBC-FqGwvxzm0w7mPnYnFUnCliv-72TCmgxoLZbGSnWq-gcP4zvyuUF9JHR-AqOcoNcjgyi7GOPmBIfYPwXMgTmJJjPhhUzi6qDPs6ABzg_yASj8Eac3j91eZCIYKCjzhJ6UuMqlXNzFyCOQlkD0rF07kFlC188-VYn6NTiO1qxwVkiJAbz-EXg-VbV5QPt_3wCwfqCjfvxRtlk7hrXsecjzUcWs6nZt4HFxKjBnvXsL9q-X_0W1SbbezVvBbOvmKVg2Q6UNC7iGJSK4lcWllcD8F0hQyfRrmJUT8SXPXJtDuN_Ab7rnZkfNzTK-GXg81N48FQLJM4FTB5CUqJUSQ8A0dYoM2PSxYjIv6'
+	  Authorization: sessionStorage.Authorization  || ''
     },
     body
   })
@@ -23,6 +22,8 @@ export default function request (method, url, body) {
     if (res.status === 401) {
 	  //window.location.href = '/login';
 	  //return '401';
+	 // currentPage && currentPage.props.history.push('/login');
+	  window.location.href = '#/login';
       return Promise.reject('Unauthorized.');
     } else {
     //  const token = res.headers.get('access-token');
@@ -34,7 +35,7 @@ export default function request (method, url, body) {
   });
 }
 
-export const get = (url) => request('GET', url);
-export const post = (url, body) => request('POST', url, body);
-export const put = (url, body) => request('PUT', url, body);
-export const del = (url, body) => request('DELETE', url, body);
+export const get = (url,currentPage) => request('GET', url,'',currentPage);
+export const post = (url, body,currentPage) => request('POST', url, body,currentPage);
+export const put = (url, body,currentPage) => request('PUT', url, body,currentPage);
+export const del = (url, body,currentPage) => request('DELETE', url, body,currentPage);

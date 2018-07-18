@@ -16,6 +16,7 @@ class ListView extends Component{
 	}
   }
   componentDidMount() {
+    $(this.node).scrollTop(0);
 	this.initState();
 	interval = setInterval(() => {
 	  if($(this.node).height() + $(this.node).scrollTop() >= $(this.node)[0].scrollHeight - 10 && !this.state.isEnd && !this.state.loading){
@@ -32,21 +33,27 @@ class ListView extends Component{
   }
   getListByPageIndex(){
 	const {pageIndex,list} = this.state;
+	const {page} = this.props;
 	let newList = [];
 	let url = this.props.url.replace('pageIndex',pageIndex);
 	//console.log(url);
 	this.setState({
 	  loading:true,
 	});
-	
-	get(url).then((res) => {
-	  if(res.Data){
+	get(url,page).then((res) => {
+	  if(res.Data.rows){
 		newList = res.Data.rows;
+	  }else{
+		this.setState({
+		  bottomText:list.length === 0?'没有相关数据':'没有更多数据',
+		  isEnd:true
+	    });
+		return false;
 	  }
 	  this.setState({
 	    loading:false,
 	  });
-	  //console.log(newList);
+	  console.log(newList);
 	  if(newList.length === 0){
 		this.setState({
 		  bottomText:list.length === 0?'没有相关数据':'没有更多数据',
@@ -62,7 +69,6 @@ class ListView extends Component{
     .catch((err) => console.error(err));
   }
   componentWillReceiveProps() {
-    this.node.scrollTo(0,0);
 	this.initState();
   }
   initState(){
@@ -70,6 +76,7 @@ class ListView extends Component{
 	  showCount:this.props.url?10000:0,
 	  bottomText:'Loading...',
 	  isEnd:false,
+	  loading:false,
 	  pageIndex:1,
 	  list:this.props.data?this.props.data:[]
 	});
@@ -78,14 +85,16 @@ class ListView extends Component{
 	clearInterval(interval);
   }
   render(){
+	const {list,bottomText,showCount} = this.state;
+	const {className,style,row} = this.props;
 	return (
 	  <div 
 	    ref={node => this.node = node} 
-		className={this.props.className}
-		style={this.props.style}
+		className={className}
+		style={style}
 	  >
-		{this.state.list.slice(0,this.state.showCount).map(this.props.row)}
-		<div className='listLoading'>{this.state.bottomText}</div>
+		{list.slice(0,showCount).map(row)}
+		<div className='listLoading'>{bottomText}</div>
 	  </div>
 	);
   }

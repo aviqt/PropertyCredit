@@ -21,5 +21,6 @@
     "babel-plugin-import": "^1.7.0",
     "mockjs": "^1.0.1-beta3"
   },
-  "proxy": "http://saturn.51vip.biz:8065"
+  "proxy": "http://saturn.51vip.biz:8065",
+  "homepage": "./"
 }

@@ -6,80 +6,183 @@ import {
 	WingBlank,
 	ImagePicker,
 	Picker,
+	Toast,
 	WhiteSpace
  } from 'antd-mobile';
 import TopNavBar from './components/topNavBar';
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
+import {post,get} from '../utils/request';
+import ImgUpload from './components/imgUpload';
+import {loginToSetToken} from '../utils/func';
 
 
 
 
-const userTypes = [
-	{value:'业主',label:'业主',children:[]},
-	{value:'租客',label:'租客',children:[]},
-  ];
-const areas = [
-	{value:'浙江省',label:'浙江省',children:[
-	  {value:'宁波市',label:'宁波市',children:[
-	  	{value:'海曙区',label:'海曙区',children:[]},
-	  	{value:'江北区',label:'江北区',children:[]},
-	  ]},
-	  {value:'杭州市',label:'杭州市',children:[
-	  	{value:'上城区',label:'上城区',children:[]},
-	  ]},
-	]},
-	{value:'安徽省',label:'安徽省',children:[]},
-  ];
+
 
 
 class BindArea extends Component { 
  constructor(props) {  
     super(props);  
     this.state = { 
-	  name:'',
-	  unitNumber:'',
-	  roomNumber:'',
-	  userType:['业主'],
-	  areaValue:['浙江省','宁波市','海曙区'],
-	  address:'',
-	  certificateNumber:'',
-	  certificatePhotos:[],
+	  UnitNo:'',
+	  BuildingNo:'',
+	  
+	  districtInfo:[],
+	  districtInfoList:[],
+	  streetInfo:[],
+	  streetInfoList:[],
+	  communityInfo:[],
+	  communityInfoList:[],
+	  residenceInfo:[],
+	  residenceInfoList:[],
+	  
+	  
+	  FileIds:'',
+	  hasToken:!(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' ),
+	  
+	  submitLoading:false
+	  
 	}
   }
-  
   componentDidMount(){
-    
+	this.getAreaInfo('districtInfoList','');
+  }
+  getAreaInfo = (fieldName,areaId) => {
+	//console.log(this.state.districtInfo.length);
+	let url = sessionStorage.apiUrl + '/api/AreaInfo/List?areaId=' + areaId;
+	switch(fieldName){
+	  case 'streetInfoList':
+	    this.setState({streetInfo:[]});
+	  case 'communityInfoList':
+	    this.setState({communityInfo:[]});
+	    this.setState({residenceInfo:[]});
+	}
+	get(url,this)
+	.then(res => {
+	  let areaInfoList = [];
+	  res.Data.map(item => {
+		areaInfoList.push({value:item.F_ID,label:item.F_FULL_NAME,children:[]});
+	  });
+	  this.setState({[fieldName]:areaInfoList});
+	})
   }
   
-
-  onSubmit = () =>{
-	console.log(this.state.areaValue.join(','));
+  getResidenceInfo = (communityCode) =>{
+	//console.log(communityCode[0]);
+	let url = 'http://saturn.51vip.biz:81/data-system/api/bigScreen/house/getBasicHouseInfo?community_code=' + communityCode + '&pageNo=1&pageSize=999';
+	fetch(url,{method:'GET'})
+	.then(res => res.json())
+	.then(res => {
+	  let areaInfoList = [];
+	  res.data.pageData.map(item => {
+		areaInfoList.push({value:item.ID + ',' + item.NAMES,label:item.NAMES,children:[]});
+	  });
+	  this.setState({residenceInfoList:areaInfoList});
+	})
   }
-  imagePickerChange = (files,type,index) =>{
-	  //console.log(files);
-	  this.setState({
-		  certificatePhotos:files
-	  })
+
+  onSubmit = () => {
+	if(this.state.submitLoading) return false;
+	this.setState({
+	  submitLoading:true,
+	})
+	//console.log(this.state.residenceInfo[0].split(',')[0]);
+	if(this.state.residenceInfo.length === 0){
+	  Toast.info('请选择小区！');
+	  return false;
+	}
+	const url = sessionStorage.apiUrl + '/api/Residence/AddUserResidence';
+	let data = {
+	  ResidenceName: this.state.residenceInfo[0].split(',')[1],
+	  ResidenceId: this.state.residenceInfo[0].split(',')[0],
+	  BuildingNo: this.state.BuildingNo,
+	  UnitNo: this.state.UnitNo,
+	};
+	console.log(data);
+	post(url,data,this)
+	.then(res => {
+	  console.log(res);
+	  if(res.Data === 'OK'){
+		Toast.info('提交成功');
+		this.props.history.push('/vote/list');
+	  }else{
+		Toast.info('提交失败');
+		this.setState({
+		  submitLoading:false,
+		})
+	  }
+	  
+	})
+  }
+
+  getFileIds(info){
+	//console.log(info);
+	if(info.file.status === 'done' || info.file.status === 'removed'){
+	  let str = '[';
+      info.fileList.map((i,index) => {
+  	    if(index !== 0) str += ',';
+  	    str += '{"fileid":"' + i.response.fileid + '","name":"' + i.response.fileinfo.name + '","ext":"' + i.response.fileinfo.ext + '","size":"' + i.response.fileinfo.size + '"}';  
+  	    return false;
+      });
+      str += ']';
+	  //console.log(str);
+      this.setState({
+	    FileIds:str
+	  });
+	};
   }
   render() {
     return (
 	  <div>
-		<TopNavBar showLC title='绑定小区'/>
+		<TopNavBar title='绑定小区'/>
 		<div className='formBox peronalInfoForm' >
 		  <List>
-		    <InputItem
-		  	  placeholder = '请输入'
-		      value={this.state.name}
-		      onChange={name => this.setState({ name })}
-		    >小区名称</InputItem>
+		    <Picker 
+			  data={this.state.districtInfoList} 
+			  cols={1} 
+			  value={this.state.districtInfo}
+			  onOk={districtInfo => {this.setState({ districtInfo });this.getAreaInfo('streetInfoList',districtInfo)}}
+			>
+			  <List.Item  arrow='horizontal'>区县</List.Item>
+			</Picker>
+		    <Picker 
+			  data={this.state.streetInfoList} 
+			  cols={1} 
+			  disabled={this.state.districtInfo.length === 0}
+			  value={this.state.streetInfo}
+			  onOk={streetInfo => {this.setState({ streetInfo });this.getAreaInfo('communityInfoList',streetInfo)}}
+			>
+			  <List.Item  arrow='horizontal'>街道</List.Item>
+			</Picker>
+		    <Picker 
+			  data={this.state.communityInfoList} 
+			  cols={1} 
+			  disabled={this.state.streetInfo.length === 0}
+			  value={this.state.communityInfo}
+			  onOk={communityInfo => {this.setState({ communityInfo });this.getResidenceInfo(communityInfo);}}
+			>
+			  <List.Item  arrow='horizontal'>社区</List.Item>
+			</Picker>
+		    <Picker 
+			  data={this.state.residenceInfoList} 
+			  cols={1} 
+			  disabled={this.state.communityInfo.length === 0}
+			  value={this.state.residenceInfo}
+			  onOk={residenceInfo => this.setState({ residenceInfo })}
+			>
+			  <List.Item  arrow='horizontal'>小区</List.Item>
+			</Picker>
+			
 			<div style={{overflow:'hidden'}} className='unitRoomNum'>
 			  <div style={{width:'65%',float:'left'}}>
 			    <InputItem
 			      extra='单元 -'
 		  	      placeholder = ''
+				  type='number'
 				  maxLength='4'
-		          value={this.state.unitNumber}
-		          onChange={unitNumber => this.setState({ unitNumber })}
+		          value={this.state.UnitNo}
+		          onChange={UnitNo => this.setState({ UnitNo })}
 		        >单元户号</InputItem>
 			  </div>
 			  <div style={{width:'35%',float:'left'}}>
@@ -87,57 +190,34 @@ class BindArea extends Component {
 				  className='roomNum'
 			      extra='户号'
 		  	      placeholder = ''
+				  type='number'
 				  maxLength='4'
-		          value={this.state.roomNumber}
-		          onChange={roomNumber => this.setState({ roomNumber })}
+		          value={this.state.BuildingNo}
+		          onChange={BuildingNo => this.setState({ BuildingNo })}
 		        />
 			  </div>
 			</div>
-		    <Picker 
-			  data={userTypes} 
-			  cols={1} 
-			  value={this.state.userType}
-			  onOk={userType => this.setState({ userType })}
-			>
-			  <List.Item  arrow='horizontal'>身份类型</List.Item>
-			</Picker>
-		    <Picker 
-			  data={areas} 
-			  cols={3} 
-			  value={this.state.areaValue}
-			  onOk={areaValue => this.setState({ areaValue })}
-			>
-			  <List.Item  arrow='horizontal'>位置信息</List.Item>
-			</Picker>
-		    <InputItem
-		  	  placeholder = '请输入(非必填)'
-		      value={this.state.certificateNumber}
-		      onChange={certificateNumber => this.setState({ certificateNumber })}
-		    >产权证号</InputItem>
-		    <List>
-			  <List.Item >产权证书</List.Item>
-		      <ImagePicker 
-		        files={this.state.certificatePhotos}
-		        onChange={this.imagePickerChange}
-		        multiple={true}
-			    style={{paddingBottom:5}}
-		      />
-		    </List>
+			<div style={{display:'none'}}>
+		      <List.Item >产权证书（可不选）</List.Item>
+		      <WingBlank style={{padding:8}}>
+		        <ImgUpload toParent={this.getFileIds.bind(this)}/>
+		      </WingBlank>
+			</div>
 		  </List>
+	      <div className='operationBtns'>
+		    <WingBlank>
+		      <WhiteSpace size='md' />
+		      <Button 
+		  	    style={style.btn} 
+		  	    activeStyle={style.btnActive}
+		  	    onClick={this.onSubmit}
+		  	  >提交认证</Button>
+		      <WhiteSpace size='md' />
+		      <Link to='/personalInfo' className='am-button'><span>取消</span></Link>
+		      <WhiteSpace size='md' />
+		    </WingBlank>
+	      </div>
 		</div>
-	    <div className='operationBtns'>
-		  <WingBlank>
-		    <WhiteSpace size='md' />
-		    <Button 
-			  style={style.btn} 
-			  activeStyle={style.btnActive}
-			  onClick={this.onSubmit}
-			>提交认证</Button>
-		    <WhiteSpace size='md' />
-		    <Link to='/personalInfo' className='am-button'><span>取消</span></Link>
-		    <WhiteSpace size='md' />
-		  </WingBlank>
-	    </div>
       </div>
     );
   }

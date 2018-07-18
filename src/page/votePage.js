@@ -5,13 +5,13 @@ import {
 	Carousel,
 	NavBar,
 	Icon,
+	ActivityIndicator,
 	WhiteSpace,
 	Toast
 } from 'antd-mobile';
-import TopNavBar from './components/topNavBar';
 import CheckList from './components/checkList';
+import TopNavBar from './components/topNavBar';
 import { Link } from 'react-router-dom';
-import $ from 'jquery';
 import {get,post} from '../utils/request';
 
 
@@ -22,7 +22,8 @@ class VotePage extends Component {
 	  voteId:props.match.params.voteId,
 	  vote:[],
 	  loading:true,
-	  imgHeight:1
+	  imgHeight:1,
+	  submitLoading:false
 	}
   }
   componentDidMount(){
@@ -49,26 +50,26 @@ class VotePage extends Component {
 	  userList:[]
 	};
 
-	let imgSrcPreUrl = 'http://saturn.51vip.biz:8848/File/DownloadFile?iszip=false&fileids=';
-	let VoteProjectInfoUrl = '/api/Vote/VoteProjectInfo?keyValue=' + this.state.voteId;
-	let VoteOptionsListUrl = '/api/Vote/VoteRecordOptionsCountList?keyValue=' + this.state.voteId;
-	let RecordUserListUrl = '/api/Vote/RecordUserList?keyValue=' + this.state.voteId;
+	let imgSrcPreUrl = sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=';
+	let VoteProjectInfoUrl = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectInfo?keyValue=' + this.state.voteId;
+	let VoteOptionsListUrl = sessionStorage.apiUrl + '/api/Vote/VoteRecordOptionsCountList?keyValue=' + this.state.voteId;
+	let RecordUserListUrl = sessionStorage.apiUrl + '/api/Vote/RecordUserList?keyValue=' + this.state.voteId;
 	let voteData = [];
 	let shortListData = [];
 	//获取已投票项目信息
-	get(VoteProjectInfoUrl)
+	get(VoteProjectInfoUrl,this)
 	.then((res) => {
 	  if(res.Data){
 		voteData = res.Data;
 	  }
-	  //console.log(voteData);
+	  console.log(voteData);
 	  vote.title = voteData.Title;
 	  vote.describe = voteData.Content;
 	  vote.endDate = voteData.EndTime;
 	  vote.maximum = voteData.VoteCount;
 	  vote.voted = voteData.Isvoted === '已投票'?true:false;
 	  vote.AttentionDegree = voteData.AttentionDegree;
-	  if(voteData.FileIds){
+	  if(voteData.FileIds && eval(voteData.FileIds).length !== 0){
 		let imgSrcList = [];
 	    eval(voteData.FileIds).map(item => {
 	  	  let imgSrcItem = [];
@@ -80,21 +81,21 @@ class VotePage extends Component {
 	    vote.imgSrcList = imgSrcList;
 	  }
 	  //获取已投票用户信息
-	  get(RecordUserListUrl)
+	  get(RecordUserListUrl,this)
 	  .then(res => {
 	    //console.log(res.Data);
 		let userList = [];
 	    res.Data.map(item => {
 	  	  let userItem = [];
 		  userItem.name = item.FRealName;
-		  userItem.iconSrc = item.FHeadIcon?'http://saturn.51vip.biz:8848/File/DownloadFile?iszip=false&fileids=' + item.FHeadIcon:'http://imgs.aixifan.com/o_1cdi1tr211j2312t13r91d41m6e1m.jpg';
+		  userItem.iconSrc = item.FHeadIcon?(sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=' + item.FHeadIcon):'http://imgs.aixifan.com/o_1cdi1tr211j2312t13r91d41m6e1m.jpg';
 		  userList.push(userItem);
 		  return false;
 	    })
 		vote.userList = userList;
 	  })
 	  //获取投票选项
-	  get(VoteOptionsListUrl)
+	  get(VoteOptionsListUrl,this)
       .then((res) => {
 	    if(res.Data){
 	  	  shortListData = res.Data;
@@ -107,7 +108,7 @@ class VotePage extends Component {
 		  shortItem.id = res.Data[i].Id;
 		  shortItem.name = res.Data[i].Content;
 		  shortItem.votes = res.Data[i].OptionVote;
-		  shortItem.selected = false;
+		  shortItem.selected = res.Data[i].Isvoted === '已投票'?true:false;
 		  shortList.push(shortItem);
 		}
 		//console.log(shortList);
@@ -125,6 +126,7 @@ class VotePage extends Component {
   }
   getShortList = (shortList) => {
 	let {vote} = this.state;
+	if(vote.voted) return;
 	vote.shortList = shortList;
 	//console.log(shortList);
 	this.setState({
@@ -140,30 +142,39 @@ class VotePage extends Component {
 	].join(str);
   }
   submitBtnClick = () => {
+	if(this.state.submitLoading) return false;
+	this.setState({
+	  submitLoading:true,
+	})
 	const {voteId,vote} = this.state;
-	let AddVoteRecordUrl = '/api/Vote/AddVoteRecord?keyValue=' + voteId;
+	let AddVoteRecordUrl = sessionStorage.apiUrl + '/api/Vote/AddVoteRecord?keyValue=' + voteId;
 	  
 	let count = vote.shortList.filter((item) => item.selected).length;
 	if(count > vote.maximum){
 	  Toast.info('最多只能选' + vote.maximum + '项');
+	  this.setState({
+	    submitLoading:false,
+	  });
 	}else if(count === 0){
 	  Toast.info('请至少选择一项。');
+	  this.setState({
+	    submitLoading:false,
+	  });
 	}else{
-		
 	  let optionsList = [];
 	  vote.shortList.filter(item => item.selected).map(item => {
 		let options = {
 		  OptionsId:item.id,
-		  VoterId:'9f2ec079-7d0f-4fe2-90ab-8b09a8302aba',
+		  VoterId:voteId,
 		  ProjectId:voteId
 		};
 		optionsList.push(options);
 		return false;
 	  })
 
-	  post(AddVoteRecordUrl,optionsList)
+	  post(AddVoteRecordUrl,optionsList,this)
       .then((res) => {
-		//console.log(res);
+		console.log(res);
         if (res) {
 		  let result = '你把票投给了 ';
 		  vote.shortList.map((item) => {
@@ -174,6 +185,9 @@ class VotePage extends Component {
 		  this.getVoteData()
         } else {
           Toast.info('投票失败');
+		  this.setState({
+		    submitLoading:false,
+		  });
         }
       })
       .catch((err) => console.error(err));
@@ -181,7 +195,7 @@ class VotePage extends Component {
   }
   
   renderShortList = (vote) => {
-	if(vote.voted){
+	if(Date.parse(vote.endDate) <= Date.now()){
 	  return <div style={style.shortList}>
 	  	{vote.shortList.sort((a,b) => b.votes-a.votes).map((item,index) => 
 	  	<div key={'shortItem'+index} style={style.shortItem}>
@@ -206,26 +220,18 @@ class VotePage extends Component {
 	const {vote} = this.state;
 	let votesSum = 0;
 	vote.shortList.forEach((item,index) => {
-		votesSum += item.votes;
+	  votesSum += item.votes;
 	})
 	
     return (
 	  <div>
-		<div style={{height:45}}>
-	      <NavBar
-	        mode='light'
-	        leftContent = {<Link to='/vote/list'><Icon key='navbar_l' type='left' color='white'/></Link>}
-	        style={{backgroundColor:'#18a3fe',height:45,position:'fixed',top:0,left:0,right:0,zIndex:10}}
-	      >
-	  	  <span style={{color:'white',fontSize:20}}>投票页面</span>
-	      </NavBar>
-	    </div>
+		<TopNavBar title='投票页面' showLC/>
 		<div className='formBox' style={{backgroundColor:'#f8f8f8',bottom:vote.voted?0:' '}}>
 		  <WingBlank>
 	        <div style={style.title}>{vote.title}</div>
 	        <div style={style.titleUnderLine}></div>
 		    <Carousel autoplay={false} infinite>
-		      {vote.imgSrcList.map(val =>
+		      {vote.imgSrcList && vote.imgSrcList.map(val =>
 		  	  <img 
 		  	    key={val.src}
 		  	    src={val.src} 
@@ -259,20 +265,20 @@ class VotePage extends Component {
 		  	</div>
 	        </div>
 		  </WingBlank>
+	      <div className='operationBtns' style={{display:(vote.voted || Date.parse(vote.endDate) <= Date.now())?'none':''}}>
+		    <WingBlank>
+		      <WhiteSpace size='md' />
+		      <Button 
+		  	    style={style.btn} 
+		  	    activeStyle={style.btnActive}
+		  	    onClick={this.submitBtnClick}
+		  	  >投票</Button>
+		      <WhiteSpace size='md' />
+		      <Link to='/vote/list' className='am-button'><span>取 消</span></Link>
+		      <WhiteSpace size='md' />
+		    </WingBlank>
+	      </div>
 		</div>
-	    <div className='operationBtns' style={{display:vote.voted?'none':''}}>
-		  <WingBlank>
-		    <WhiteSpace size='md' />
-		    <Button 
-			  style={style.btn} 
-			  activeStyle={style.btnActive}
-			  onClick={this.submitBtnClick}
-			>投票</Button>
-		    <WhiteSpace size='md' />
-		    <Link to='/vote/list' className='am-button'><span>取消</span></Link>
-		    <WhiteSpace size='md' />
-		  </WingBlank>
-	    </div>
       </div>
     );
   }

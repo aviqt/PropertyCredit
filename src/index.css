@@ -38,7 +38,7 @@ body {
 
 /*addVote*/
 .addVoteForm{position:fixed;left:0;right:0;top:40px;bottom:135px;overflow:auto;}
-.operationBtns{position:fixed;border-top:15px solid #e4e4e4;left:0;right:0;bottom:0;background:#f8f8f8;z-index:10;}
+.operationBtns{}
 
 .optionItemInput{position:relative;}
 .optionItemAddButton{position:relative;line-height:44px;text-align:right;color:#476faa;font-size:14px;padding-right:45px;border-bottom:15px solid #e4e4e4;}
@@ -70,16 +70,27 @@ body {
 
 
 
+/**投诉详情*/
+.complaintDetail{padding:0 20px;background:white;}
+.complaintDetail .residence{line-height:50px;font-size:18px;color:#333;border-bottom:1px solid #ddd;margin-bottom:10px;}
+.complaintDetail .content{line-height:25px;font-size:16px;color:#666;margin:10px 0;text-indent:2em;}
+.complaintDetail .time{line-height:40px;font-size:16px;color:#999;}
 
+.processResult{background:white;margin:15px 0 30px 0;text-align:center;line-height:30px;font-size:16px;padding:20px 0;}
+.processResult span{color:#999;}
+.processResult strong{color:#1890ff;font-weight:normal;}
+.processResult .result{background:#f2f9ff;color:#1890ff;font-size:20px;height:90px;width:90px;border-radius:10px;margin:0 auto 10px auto;text-align:center;border:1px solid #1890ff;}
+.processResult img{display:block;margin:13px auto 5px auto;height:30px;}
 
-
-
+.processReply{background:white;border-top:1px solid #ddd;overflow:hidden;}
+.processReply div{text-align:center;box-sizing:border-box;border-right:1px solid #ddd;line-height:70px;float:left;width:50%;font-size:16px;color:#ccc;}
+.processReply div img{height:20px;display:inline-block;margin-right:8px;vertical-align:sub;}
 
 
 
 .am-list-item .am-list-line .am-list-extra{flex-basis: initial;}
 
-.formBox{position:fixed;left:0;right:0;top:45px;bottom:135px;overflow:auto;}
+.formBox{position:fixed;left:0;right:0;top:45px;bottom:0;overflow:auto;}
 .formBox .loginHeadImg{text-align:center;margin:20px 0;}
 .formBox .loginOther{line-height:50px;text-align:right;color:gray;}
 .formBox .loginOther a{color:gray;}
@@ -108,18 +119,38 @@ body {
 
 
 .tabMenu{overflow:hidden;}
-.tabMenu div{float:left;line-height:50px;width:50%;text-align:center;font-size:14px;color:gray;}
-.tabMenu div .tabActive{color:#333; border-bottom:1px solid #333;padding:5px 10px}
+.tabMenu div{float:left;line-height:50px;width:50%;text-align:center;font-size:16px;color:gray;}
+.tabMenu div .tabActive{color:#1890ff; border-bottom:2px solid #1890ff;padding:0 15px;display:inline-block;}
 
 .listBox{position:absolute;top:0;right:0;bottom:0;left:0;overflow:auto;}
-.listBox .item{overflow:hidden;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:10px;position:relative;}
+.listBox .item{overflow:hidden;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:10px 15px;position:relative;}
 .listBox .item:active{background:#f9f9f9;}
 .listBox .item strong{color:#333;font-size:16px;display:block;line-height:25px;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowra}
 .listBox .item strong > span{font-weight:normal;font-size:12px;margin-left:5px;}
 .listBox .item > span{color:#777;line-height:20px;height:20px;font-size:12px;display:block;float:left;width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .listBox .item .circleText{font-size:12px;position:absolute;color:#666;height:50px;line-height:50px;width:50px;border:1px dashed #444;bottom:15px;right:10px;border-radius:50%;text-align:center;}
 .listBox .item .circleText:before{content:'';position:absolute;height:44px;width:44px;border:1px dashed #999;bottom:2px;right:2px;border-radius:50%;}
+
+.listBox .item .content{color:#666;margin:8px 0;font-size:15px;}
+.listBox .item .status{box-sizing:border-box;position:absolute;right:10px;top:10px;width:80px;line-height:22px;border-radius:15px;background:#eee;color:#aaa;text-align:center;}
+.listBox .item .status_2{color:#1890ff;border:1px solid #1890ff;background:none;}
+.listBox .item .status_-1{color:#f00;border:1px solid #f00;background:none;}
+
 .listBox .listLoading{text-align:center;line-height:40px;background:#fafafa;}
+
+.
+
+
+
+
+
+
+
+
+
+
+
+
 
 .am-button:active{background:#f8f8f8}
 
@@ -127,8 +158,9 @@ body {
 .disabledInputDetail *{color:black !important;}
 .disabledInputDetail input{text-align:;}
 
-
-
+.headImg{display:block;}
+.headImg img{height:100px;width:100px;border-radius:5px;}
+.headImg .ant-upload.ant-upload-select-picture-card{border:none;height:auto;width:auto;background:none;margin:0px;}
 
 .ant-upload-list-picture-card .ant-upload-list-item-actions {
 	opacity:1;    
@@ -142,11 +174,11 @@ body {
 	display:none;
 }
 .ant-upload-list-item-info > span{display:unset;}
+.am-list-item.am-input-disabled .am-input-label{color:#333;}
 
 
 
-
-
+.am-search-input .am-search-clear{top:7px;right:4px;}
 
 
 
