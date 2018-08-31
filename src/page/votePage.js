@@ -13,6 +13,8 @@ import CheckList from './components/checkList';
 import TopNavBar from './components/topNavBar';
 import { Link } from 'react-router-dom';
 import {get,post} from '../utils/request';
+import {selFunc} from '../utils/func';
+import ImgList from './components/imgList';
 
 
 class VotePage extends Component {
@@ -47,16 +49,19 @@ class VotePage extends Component {
 	  	{id:2,name:'汕头',votes:466,selected:false},
 	  	{id:3,name:'韶关',votes:453,selected:false}
 	  ],
-	  userList:[]
 	};
 
 	let imgSrcPreUrl = sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=';
 	let VoteProjectInfoUrl = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectInfo?keyValue=' + this.state.voteId;
 	let VoteOptionsListUrl = sessionStorage.apiUrl + '/api/Vote/VoteRecordOptionsCountList?keyValue=' + this.state.voteId;
-	let RecordUserListUrl = sessionStorage.apiUrl + '/api/Vote/RecordUserList?keyValue=' + this.state.voteId;
 	let voteData = [];
 	let shortListData = [];
-	//获取已投票项目信息
+	//获取投票项目信息
+	const hasToken = !(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' );
+	if(!hasToken){
+	  VoteProjectInfoUrl = sessionStorage.apiUrl + '/api/Vote/VoteProjectInfo?keyValue=' + this.state.voteId;
+	}
+	
 	get(VoteProjectInfoUrl,this)
 	.then((res) => {
 	  if(res.Data){
@@ -80,20 +85,7 @@ class VotePage extends Component {
 	    });
 	    vote.imgSrcList = imgSrcList;
 	  }
-	  //获取已投票用户信息
-	  get(RecordUserListUrl,this)
-	  .then(res => {
-	    //console.log(res.Data);
-		let userList = [];
-	    res.Data.map(item => {
-	  	  let userItem = [];
-		  userItem.name = item.FRealName;
-		  userItem.iconSrc = item.FHeadIcon?(sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=' + item.FHeadIcon):'http://imgs.aixifan.com/o_1cdi1tr211j2312t13r91d41m6e1m.jpg';
-		  userList.push(userItem);
-		  return false;
-	    })
-		vote.userList = userList;
-	  })
+	  
 	  //获取投票选项
 	  get(VoteOptionsListUrl,this)
       .then((res) => {
@@ -133,14 +125,7 @@ class VotePage extends Component {
       vote:vote
     })
 　}
-  formatDate(timeStamp,str){
-	let date = new Date(timeStamp);
-	return [
-	  date.getFullYear(),
-	  (date.getMonth()+1) > 9 ? (date.getMonth()+1) : '0' + (date.getMonth()+1),
-	  date.getDate() > 9 ? date.getDate() :'0' + date.getDate()
-	].join(str);
-  }
+
   submitBtnClick = () => {
 	if(this.state.submitLoading) return false;
 	this.setState({
@@ -196,19 +181,21 @@ class VotePage extends Component {
   
   renderShortList = (vote) => {
 	if(Date.parse(vote.endDate) <= Date.now()){
-	  return <div style={style.shortList}>
-	  	{vote.shortList.sort((a,b) => b.votes-a.votes).map((item,index) => 
-	  	<div key={'shortItem'+index} style={style.shortItem}>
-	  	  {index+1}、{item.name}
-	  	  <div style={style.shortItemVotesBox}>票数：<span style={style.shortItemVotes}>{item.votes}</span></div>
-	  	</div>
-	  	)}
-	  </div>
-	}else{
-	  return <div>
-	    <CheckList shortList={vote.shortList} maximum={vote.maximum} toParent={this.getShortList.bind(this)} />
-	  </div>;
+	  return (
+	    <div style={style.shortList}>
+	      {vote.shortList.sort((a,b) => b.votes-a.votes).map((item,index) => 
+	      <div key={'shortItem'+index} style={style.shortItem}>
+	        {index+1}、{item.name}
+	        <div style={style.shortItemVotesBox}>票数：<span style={style.shortItemVotes}>{item.votes}</span></div>
+	      </div>
+	      )}
+	    </div>
+	  );
 	}
+	return (
+	  <CheckList shortList={vote.shortList} maximum={vote.maximum} toParent={this.getShortList.bind(this)} />
+	);
+	
   }
   render() {
 
@@ -226,45 +213,21 @@ class VotePage extends Component {
     return (
 	  <div>
 		<TopNavBar title='投票页面' showLC/>
-		<div className='formBox' style={{backgroundColor:'#f8f8f8',bottom:vote.voted?0:' '}}>
-		  <WingBlank>
-	        <div style={style.title}>{vote.title}</div>
-	        <div style={style.titleUnderLine}></div>
-		    <Carousel autoplay={false} infinite>
-		      {vote.imgSrcList && vote.imgSrcList.map(val =>
-		  	  <img 
-		  	    key={val.src}
-		  	    src={val.src} 
-		  	    alt={vote.imgSrc} 
-		  	    style={{height:this.state.imgHeight,width:'100%'}}
-		  		onLoad={() => {
-                    // fire window resize event to change height
-                    window.dispatchEvent(new Event('resize'));
-                    this.setState({ imgHeight: 'auto' });
-                  }}
-		  	  />
-		      )}
-		    </Carousel>
-	        <div style={style.describe}>
-	          {vote.describe} <br />
-	          （说明：点击选项进行投票，结果于投票后可见）
-	        </div>
-	        <div style={style.info}>
-	          <div style={style.infoItem}>候选数量<br />{vote.shortList.length}</div>
-	          <div style={style.infoItem}>累计投票<br />{votesSum}</div>
-	          <div style={style.infoItem}>关注度<br />{vote.AttentionDegree}</div>
-	        </div>
-	        {this.renderShortList(vote)}
-	        <div style={style.endDate}>投票截止日期：{this.formatDate(vote.endDate,'-')}</div>
-	        <div>
-	          <div style={{lineHeight:'30px'}}>已有{vote.userList.length}人参与投票</div>
-		  	<div style={style.userList}>
-		  	  {vote.userList.map((item,index) =>
-		  		<img key={item.name + ' ' + index} style={style.userItemImg} src={item.iconSrc} alt={item.name} />
-		  	  )}
-		  	</div>
-	        </div>
-		  </WingBlank>
+		<div className='formBox' style={{backgroundColor:'#f8f8f8',bottom:vote.voted?0:' ',padding:'0 20px'}}>
+	      <div style={style.title}>{vote.title}</div>
+	      <div style={style.titleUnderLine}></div>
+	      <div style={style.describe}>
+	        {vote.describe} <br />
+	        （说明：点击选项进行投票，结果于投票后可见）
+	      </div>
+		  <ImgList imgList={vote.imgSrcList} />
+	      <div style={style.info}>
+	        <div style={style.infoItem}>候选数量<br />{vote.shortList.length}</div>
+	        <div style={style.infoItem}>累计投票<br />{votesSum}</div>
+	        <div style={style.infoItem}>关注度<br />{vote.AttentionDegree}</div>
+	      </div>
+	      {this.renderShortList(vote)}
+	      <div style={style.endDate}>投票截止日期：{selFunc.formatDate(vote.endDate,'-')}</div>
 	      <div className='operationBtns' style={{display:(vote.voted || Date.parse(vote.endDate) <= Date.now())?'none':''}}>
 		    <WingBlank>
 		      <WhiteSpace size='md' />
@@ -309,6 +272,7 @@ const style ={
   info:{
   	backgroundColor:'white',
 	padding:'12px 0',
+	display:'none',
 	margin:'10px 0',
 	overflow:'hidden'
   },

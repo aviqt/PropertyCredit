@@ -3,6 +3,7 @@ import { Upload, message, Button, Icon } from 'antd';
 
 const props = {
   name: 'file',
+  multiple:true,
   action: sessionStorage.fileUrl + '/File/UploadSimpleFile',
   headers: {
     authorization: 'authorization-text',
@@ -10,7 +11,6 @@ const props = {
   listType:'picture-card',
   accept:'image/jpg,image/jpeg,image/png'
 };
-
 class ImgUpload extends Component {
   uploadOnChange = (info) => {
 	if (info.file.status !== 'uploading') {
@@ -27,11 +27,10 @@ class ImgUpload extends Component {
 	
   }
   render() {
+	 
     return (
       <Upload {...props} onChange = {this.uploadOnChange}>
-        <Button>
-          <Icon type="upload" /> 添加
-        </Button>
+        <img src={require('../../images/addBig.png')} alt='1' style={{width:86}} />
       </Upload>
     );
   }

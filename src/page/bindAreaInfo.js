@@ -40,42 +40,12 @@ class BindAreaInfo extends Component {
     .then(res => {
 	  console.log(res.Data)
 	  this.setState({
-		UnitNo:res.Data.UnitNo,
-		BuildingNo:res.Data.BuildingNo
+		Residence:res.Data
 	  });
-	  let url = 'http://saturn.51vip.biz:81/data-system/api/bigScreen/house/getBasicHouseInfo?id=' + res.Data.ResidenceId;
-	  fetch(url,{method:'GET'})
-	  .then(res => res.json())
-	  .then(res => {
-	    //console.log(res.data.pageData[0]);
-	    this.setState({Residence:res.data.pageData[0]});
-	  })
+
 	})
   }
-  onDelete = () => {
-	const that = this;
-	confirm({
-      title: '确定要解除和该小区的绑定么?',
-      content: '此操作不可逆！',
-      okText: '确定',
-      okType: 'danger',
-      cancelText: '取消',
-      onOk() {
-        console.log('OK');
-		del(sessionStorage.apiUrl + '/api/Residence/' + that.state.id,'',that)
-		.then(res => {
-		  console.log(res);
-          Toast.info('成功解除绑定');
-		  that.props.history.push('/personalInfo');
-		})
-      },
-      onCancel() {
-        console.log('Cancel');
-      },
-    });  
-	return;
-	
-  }
+
 
   render() {
 	const {Residence} = this.state;
@@ -84,22 +54,15 @@ class BindAreaInfo extends Component {
 		<TopNavBar title='小区信息'/>
 		<div className='formBox peronalInfoForm' >
 		  <List>
+
 			<InputItem
 			  disabled
-		      value={Residence.DISTRICT}
-		    >区县</InputItem>
+		      value={Residence.ResidenceName}
+		    >小区名称</InputItem>
 			<InputItem
 			  disabled
-		      value={Residence.STREET}
-		    >街道</InputItem>
-			<InputItem
-			  disabled
-		      value={Residence.COMMUNITY}
-		    >社区</InputItem>
-			<InputItem
-			  disabled
-		      value={Residence.NAMES}
-		    >小区</InputItem>
+		      value={Residence.ResidenceName}
+		    >身份</InputItem>
 		   
 			
 			<div style={{overflow:'hidden'}} className='unitRoomNum'>
@@ -110,7 +73,7 @@ class BindAreaInfo extends Component {
 		  	      placeholder = ''
 				  type='number'
 				  maxLength='4'
-		          value={this.state.UnitNo}
+		          value={Residence.BuildingNo}
 		        >单元户号</InputItem>
 			  </div>
 			  <div style={{width:'35%',float:'left'}}>
@@ -121,19 +84,13 @@ class BindAreaInfo extends Component {
 		  	      placeholder = ''
 				  type='number'
 				  maxLength='4'
-		          value={this.state.BuildingNo}
+		          value={Residence.FamilyNo}
 		        />
 			  </div>
 			</div>
 		  </List>
 	      <div className='operationBtns'>
 		     <WingBlank>
-		       <WhiteSpace size='md' />
-		       <Button 
-		   	    style={style.btn} 
-		   	    activeStyle={style.btnActive}
-		   	    onClick={this.onDelete}
-		   	  >解除绑定</Button>
 		       <WhiteSpace size='md' />
 		       <Link to='/personalInfo' className='am-button'><span>返回</span></Link>
 		       <WhiteSpace size='md' />

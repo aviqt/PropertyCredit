@@ -14,16 +14,16 @@ import {
  } from 'antd-mobile';
 import TopNavBar from './components/topNavBar';
 import SubmitSuccess from './components/submitSuccess';
-import ImgUpload from './components/imgUpload';
 import { Link,Redirect  } from 'react-router-dom';
 import {get,post} from '../utils/request';
+import ImgUpload from './components/imgUpload';
 import {selFunc} from '../utils/func';
 
 const CheckboxItem = Checkbox.CheckboxItem;
 
 
 
-class ComplaintAdd extends Component {
+class CreditBuildAdd extends Component {
   constructor(props) {  
     super(props);  
     this.state = { 
@@ -31,12 +31,12 @@ class ComplaintAdd extends Component {
 	  clicked:'none',
 	  submitSuccess:false,
 	  residenceList:[],
+	  type:props.match.params.type,
 	  
 	  title:'',
 	  content:'',
-	  type:[1],
-	  selectedRes:[],
 	  FileIds:'',
+	  selectedRes:[],
 	}
   }
   componentDidMount(){
@@ -54,7 +54,7 @@ class ComplaintAdd extends Component {
 	.then(res => {
 	  if(!res.Data)return false;
 	  let residenceList = [];
-	  console.log(res);
+	  //console.log(res);
 	  res.Data.map(item => {
 		let residenceOption = [];
 		residenceOption.value = item.ResidenceId;
@@ -62,7 +62,7 @@ class ComplaintAdd extends Component {
 		residenceList.push(residenceOption);
 		return false;
 	  })
-	  console.log(residenceList);
+	  //console.log(residenceList);
 	  this.setState({
 		residenceList:residenceList,
 		selectedRes:[residenceList[0].value]
@@ -75,7 +75,6 @@ class ComplaintAdd extends Component {
 	  title,
 	  content,
 	  selectedRes,
-	  type,
 	  FileIds
 	} = this.state;
 	if(title.replace(/\s+/g,'').length <= 0){
@@ -84,9 +83,8 @@ class ComplaintAdd extends Component {
 	}
 	let data = {
 	  Title:title,
-	  Content:content,
+	  Description:content,
 	  ResidenceId:selectedRes[0],
-	  ComplaintType:type[0],
 	  FileIds:FileIds,
 	};
 	
@@ -100,12 +98,13 @@ class ComplaintAdd extends Component {
 	  addLoading:true,
 	})
 	console.log(data);
+	const {type} = this.state;
 	//return false;
-	let url = sessionStorage.apiUrl + '/api/Complaint/';
+	let url = sessionStorage.apiUrl + (type === '1'?'/api/Credit/GoodFaith':'/api/Credit/BreakFaith');
 	post(url,data)
 	.then(res => {
 	  console.log(res);
-	  if(res.State === 'Success'){
+	  if(res.Message === '操作成功'){
 	  	//setTimeout(()=>{
 	    //  this.setState({
 	    //	submitSuccess:true,
@@ -127,17 +126,10 @@ class ComplaintAdd extends Component {
 	if(this.state.submitSuccess){
 	  return (<Redirect to='/vote/addSuccess' />);
 	}
-	  
-	const complaintTypeList = [
-	  {value:1,label:'投诉'},
-	  {value:2,label:'建议'},
-	  {value:3,label:'报修'},
-	];
-	  
-	  
+	const {type} = this.state;
     return (
 	  <div>
-		<TopNavBar title='物业投诉' showLC/>
+		<TopNavBar title={type === '1'?'新增诚信信息':'新增失信信息'} showLC/>
 		<div className='formBox' >
 		  <List>
 		    <Picker 
@@ -146,20 +138,10 @@ class ComplaintAdd extends Component {
 		  	  value={this.state.selectedRes}
 		      onChange={selectedRes => this.setState({ selectedRes })}
 		      onOk={selectedRes => this.setState({ selectedRes })}
+			  
 		    >
-              <List.Item  arrow='horizontal'>小区名称</List.Item>
+              <List.Item arrow='horizontal'>选择小区</List.Item>
             </Picker>
-		    <Picker 
-		      data={complaintTypeList} 
-		  	  cols={1} 
-		  	  value={this.state.type}
-		      onChange={type => this.setState({ type })}
-		      onOk={type => this.setState({ type })}
-		    >
-              <List.Item  arrow='horizontal'>投诉类型</List.Item>
-            </Picker>
-			
-			
 			<InputItem 
 			  placeholder = '标题'
 			  style={{fontSize:20}}
@@ -167,13 +149,13 @@ class ComplaintAdd extends Component {
 		      onChange={title => this.setState({ title })}
 			/>
 		    <TextareaItem
-		  	  placeholder = '请输入您的投诉内容'
+		  	  placeholder = '请输入描述内容'
 		  	  rows='8'
 		  	  autoHeight
 		      value={this.state.content}
 		      onChange={content => this.setState({ content })}
 		    />
-		    <List.Item >添加图片</List.Item>
+		    <List.Item>添加图片（选填）</List.Item>
 		    <WingBlank style={{paddingTop:8,paddingBottom:8}}>
 		      <ImgUpload toParent={this.getFileIds.bind(this)}/>
 		    </WingBlank>
@@ -183,14 +165,14 @@ class ComplaintAdd extends Component {
 		    <WingBlank>
 		      <WhiteSpace size='md' />
 		      <Button 
-		  	    loading={this.state.addLoading} 
-		  	    style={this.state.addLoading?style.loadingBtn:style.btn} 
-		  	    onClick={this.addBtnClick}
-		  	  >
-		  	    {this.state.addLoading?'提交中 Loading':'提交'}
-		  	  </Button>
+		  	  loading={this.state.addLoading} 
+		  	  style={this.state.addLoading?style.loadingBtn:style.btn} 
+		  	  onClick={this.addBtnClick}
+		  	>
+		  	  {this.state.addLoading?'提交中 Loading':'提交'}
+		  	</Button>
 		      <WhiteSpace size='md' />
-		      <Link to='/complaint/list' className='am-button'><span>取 消</span></Link>
+		      <Link to='/creditBuild/list' className='am-button'><span>取 消</span></Link>
 		      <WhiteSpace size='md' />
 		    </WingBlank>
 	      </div>
@@ -213,4 +195,4 @@ const style ={
     backgroundColor:'gray'
   },
 }
-export default ComplaintAdd;
+export default CreditBuildAdd;

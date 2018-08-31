@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
 import {get} from '../../utils/request';
+import { PullToRefresh } from 'antd-mobile';
 
-let interval;
+
+//let interval;
 class ListView extends Component{
   constructor(props) {  
     super(props);  
@@ -12,14 +14,20 @@ class ListView extends Component{
 	  pageIndex:1,
 	  isEnd:false,
 	  loading:false,
-	  list:this.props.data?this.props.data:[]
+	  list:this.props.data?this.props.data:[],
+      refreshing: false,
+	  nodeScrollTop:0
 	}
   }
   componentDidMount() {
     $(this.node).scrollTop(0);
 	this.initState();
-	interval = setInterval(() => {
+	this.interval = setInterval(() => {
+	  this.setState({
+		nodeScrollTop:$(this.node).scrollTop()
+	  });
 	  if($(this.node).height() + $(this.node).scrollTop() >= $(this.node)[0].scrollHeight - 10 && !this.state.isEnd && !this.state.loading){
+		
 		if(this.props.url){
 		  this.getListByPageIndex()
 		}else{
@@ -40,7 +48,9 @@ class ListView extends Component{
 	this.setState({
 	  loading:true,
 	});
-	get(url,page).then((res) => {
+	//console.log(url);
+	get(url).then((res) => {
+	  //console.log(res);
 	  if(res.Data.rows){
 		newList = res.Data.rows;
 	  }else{
@@ -53,16 +63,18 @@ class ListView extends Component{
 	  this.setState({
 	    loading:false,
 	  });
-	  console.log(newList);
+	  //console.log(newList);
 	  if(newList.length === 0){
 		this.setState({
 		  bottomText:list.length === 0?'没有相关数据':'没有更多数据',
-		  isEnd:true
+		  isEnd:true,
+		  refreshing: false,
 	    });
 	  }else{
 		this.setState({
 		  list:list.concat(newList),
-		  pageIndex:pageIndex+1
+		  pageIndex:pageIndex+1,
+		  refreshing: false,
 	    });
 	  }
     })
@@ -81,20 +93,52 @@ class ListView extends Component{
 	  list:this.props.data?this.props.data:[]
 	});
   }
-  componentWillUnmount(){
-	clearInterval(interval);
+  pullToRefresh = ()=> {
+	this.setState({ refreshing: true });
+	setTimeout(() => {
+	  this.initState();
+	  this.getListByPageIndex();
+	}, 500); 
   }
+  componentWillUnmount(){
+	clearInterval(this.interval);
+  }
+  renderRows = () => { 
+	const {list,bottomText,showCount,nodeScrollTop} = this.state;
+	const {row} = this.props;
+	switch(nodeScrollTop){
+	  case 0:
+	    return (
+		  <PullToRefresh
+            damping={60}
+            direction='down'
+            refreshing={this.state.refreshing}
+            onRefresh={this.pullToRefresh}
+          >
+		    {list.slice(0,showCount).map(row)}
+		    <div className='listLoading'>{bottomText}</div>
+          </PullToRefresh>
+		);
+	  default:
+	    return (
+		  <div>
+		    {list.slice(0,showCount).map(row)}
+		    <div className='listLoading'>{bottomText}</div>
+		  </div>
+		);
+	}
+  }
+  
+  
   render(){
-	const {list,bottomText,showCount} = this.state;
-	const {className,style,row} = this.props;
+	const {className,style} = this.props;
 	return (
 	  <div 
 	    ref={node => this.node = node} 
 		className={className}
 		style={style}
 	  >
-		{list.slice(0,showCount).map(row)}
-		<div className='listLoading'>{bottomText}</div>
+	    {this.renderRows()}
 	  </div>
 	);
   }

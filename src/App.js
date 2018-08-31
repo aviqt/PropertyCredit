@@ -24,20 +24,28 @@ import PublicityList from './page/publicityList';
 import PublicityDetail from './page/publicityDetail';
 import PersonalCenter from './page/personalCenter';
 
-
 import Complaint from './page/complaint';
 import ComplaintAdd from './page/complaintAdd';
 import ComplaintList from './page/complaintList';
 import ComplaintDetail from './page/complaintDetail';
 
+import CreditBuildDetail from './page/creditBuildDetail';
+import CreditBuildList from './page/creditBuildList';
+import CreditBuildAdd from './page/creditBuildAdd';
+
+import QualityEvaluationDetail from './page/qualityEvaluationDetail';
+import QualityEvaluationList from './page/qualityEvaluationList';
+import QualityEvaluationAdd from './page/qualityEvaluationAdd';
 
 import SaveSuccess from './page/saveSuccess';
 import VoteSquare from './page/voteSquare';
 import AffirmSuccess from './page/affirmSuccess';
 import PersonalInfo from './page/personalInfo';
+import ResidenceList from './page/residenceList';
 
+import PullTorefreshTest from './page/pullTorefreshTest';
 
-import {loginToSetToken} from './utils/func';
+import {getQueryString,loginToSetToken} from './utils/func';
 import {get} from './utils/request';
 
 class App extends Component {  
@@ -63,7 +71,7 @@ class App extends Component {
 		  //  alert(res.Data);
 		  //  window.location.href = res.Data;
 		  //})
-		  window.location.href = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxff2456f987559043&redirect_uri=http%3a%2f%2fxueyu365.tunnel.qydev.com%2fWeChatVote%2f%23%2flogin&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect';
+		  window.location.href = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxff2456f987559043&redirect_uri=http%3a%2f%2f'+sessionStorage.redirectUrl+'%2fWeChatVote%2f%23%2flogin&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect';
 		}else{
 		  //console.log(res.Data);
 		  loginToSetToken(res.Data.Id,res.Data.Password,this);
@@ -75,6 +83,8 @@ class App extends Component {
   }
   isNoLoginPage(){
     let noLoginPage = [
+      '/vote/list/all',
+      '/vote/page',
       'register',
   	  'login'
     ];
@@ -87,13 +97,19 @@ class App extends Component {
   render() {
 	const hasToken = !(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' );
 	if(hasToken || this.isNoLoginPage()){
-		
+	  
 	}else{
 	  this.autoLogin();
 	  return <div>loading...</div>;
 	}
+	
+	
     return (
 		<Switch>
+		  <Route path='/pullTorefreshTest' component={PullTorefreshTest}/>
+		  
+		  
+		  
 		  <Route path='/index' component={Index}/>
 		  <Route path='/login' component={Login}/>
 		  <Route path='/register' component={Register}/>
@@ -107,9 +123,20 @@ class App extends Component {
 		  <Route path='/notice/detail/:noticeId' component={NoticeDetail}/>
 		  
 		  
-		  <Route path='/complaint/detail/:id' component={ComplaintDetail}/>
+		  <Route path='/creditBuild/detail/:id' component={CreditBuildDetail}/>
+		  <Route path='/creditBuild/list' component={CreditBuildList}/>
+		  <Route path='/creditBuild/add/:type' component={CreditBuildAdd}/>
+		  
+		  
+		  <Route path='/qualityEvaluation/detail/:id' component={QualityEvaluationDetail}/>
+		  <Route path='/qualityEvaluation/list' component={QualityEvaluationList}/>
+		  <Route path='/qualityEvaluation/add' component={QualityEvaluationAdd}/>
+		  
+		  
+		  
+		  <Route path='/complaint/detail/:id/:AuditId' component={ComplaintDetail}/>
 		  <Route path='/complaint/add' component={ComplaintAdd}/>
-		  <Route path='/complaint/list' component={ComplaintList}/>
+		  <Route path='/complaint/list/:isManage' component={ComplaintList}/>
 		  <Route path='/complaint' component={Complaint}/>
 		  
 		  <Route path='/vote/list/all' component={VoteListAll}/>
@@ -134,6 +161,7 @@ class App extends Component {
 		  <Route path='/voteSquare' component={VoteSquare}/>
 		  <Route path='/affirmSuccess' component={AffirmSuccess}/>
 		  <Route path='/personalInfo' component={PersonalInfo}/>
+		  <Route path='/residence/list' component={ResidenceList}/>
 		  
 		  <Route exact path='/' component={VoteList}/>
 		  <Route exact path='/' component={Index}/>

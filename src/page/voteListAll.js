@@ -48,11 +48,11 @@ class VoteListAll extends Component {
 
     return (
 	  <div>
-		<TopNavBar title='投票广场'  addPage='/vote/add' />
+		<TopNavBar showLC back='0' title='投票广场' />
 		<div className='mainBox' style={{bottom:0}}>
 		  <SearchBar
 		    clear={false}
-			placeholder='投票标题、发起人'
+			placeholder='投票标题'
 			onSubmit={keyWords => {this.setState({keyWords})}}
 			onClear={keyWords => {this.setState({keyWords})}}
 		  />

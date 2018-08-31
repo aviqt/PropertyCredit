@@ -94,9 +94,11 @@ class Login extends Component {
 	  }else{
 	  	//console.log(res);
 	  }
+	  //console.log(res);
     }).then(res => {
+		
 	  if(res){
-		console.log(res);
+		//console.log(res);
         sessionStorage.setItem('Authorization','Bearer ' + res.access_token);
 		this.bindWeChatCode();
 	  }else{
@@ -147,12 +149,13 @@ class Login extends Component {
 		    <WingBlank>
 		      <WhiteSpace size='md' />
 		      <Button 
-		  	  style={submitLoading?style.btnLoading:style.btn} 
-		  	  activeStyle={style.btnActive}
-		  	  onClick={this.onSubmit}
-		  	>{submitLoading?'登录中...':'登录'}</Button>
+		  	    style={style.btn} 
+		  	    activeStyle={style.btnActive}
+		  	    onClick={this.onSubmit}
+				loading={submitLoading}
+		  	  >{submitLoading?'登录中...':'登录'}</Button>
 		      <WhiteSpace size='md' />
-		      <Link to='/register' className='am-button'><span>还没有账号？立即注册</span></Link>
+		      <Link to='/register' style={{display:'none'}} className='am-button'><span>还没有账号？立即注册</span></Link>
 		      <WhiteSpace size='md' />
 		    </WingBlank>
 	      </div>

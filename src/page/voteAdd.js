@@ -6,6 +6,7 @@ import {
 	TextareaItem,
 	InputItem,
 	Picker,
+	Modal,
 	Switch,
 	WingBlank,
 	Checkbox,
@@ -14,9 +15,11 @@ import {
  } from 'antd-mobile';
 import InputOptionList from './components/inputOptionList';
 import TopNavBar from './components/topNavBar';
+import SubmitSuccess from './components/submitSuccess';
 import { Link,Redirect  } from 'react-router-dom';
 import {get,post} from '../utils/request';
 import ImgUpload from './components/imgUpload';
+import {selFunc} from '../utils/func';
 
 const CheckboxItem = Checkbox.CheckboxItem;
 const nowTimeStamp = Date.now();
@@ -40,24 +43,22 @@ class VoteAdd extends Component {
   constructor(props) {  
     super(props);  
     this.state = { 
+	  clicked:'none',
+	  residenceList:[],
+	  addLoading:false,
+	
+	  type:[1],
 	  title:'',
 	  describe:'',
-	  eventPhotos:eventPhotos,
 	  startDate:now,
 	  endDate:nowPlus,
 	  isMulti:false,
-	  isOrot:true,
 	  maximum:[2],
 	  isAnonymous:false,
 	  electoralRule:['不限'],
 	  shortListStr:',,',
-	  saveLoading:false,
-	  addLoading:false,
-	  param:props.location.state?props.location.state:[],
-	  clicked:'none',
-	  submitSuccess:false,
-	  residenceList:[],
 	  FileIds:'',
+	  selectedRes:[],
 	}
   }
   componentDidMount(){
@@ -65,57 +66,43 @@ class VoteAdd extends Component {
   }
   getFileIds(info){
 	//console.log(info);
-	if(info.file.status === 'done' || info.file.status === 'removed'){
-	  let str = '[';
-      info.fileList.map((i,index) => {
-  	    if(index !== 0) str += ',';
-  	    str += '{"fileid":"' + i.response.fileid + '","name":"' + i.response.fileinfo.name + '","ext":"' + i.response.fileinfo.ext + '","size":"' + i.response.fileinfo.size + '"}';  
-  	    return false;
-      });
-      str += ']';
-	  //console.log(str);
-      this.setState({
-	    FileIds:str
-	  });
-	};
+	let str = selFunc.getFileIdsStr(info);
+	this.setState({
+	  FileIds:str
+	})
   }
   setVoteRange(index,e){
 	let {residenceList}  = this.state;
 	residenceList[index].checked = e.target.checked;
 	this.setState({residenceList:residenceList})
   }
+ 
   getResidenceList(){
 	get(sessionStorage.apiUrl + '/api/Residence/UserResidenceList',this)
 	.then(res => {
 	  if(!res.Data)return false;
 	  let residenceList = [];
-	  console.log(res);
+	  //console.log(res);
 	  res.Data.map(item => {
 		let residenceOption = [];
-		residenceOption.id = item.ResidenceId;
-		residenceOption.Name = item.ResidenceName;
-		residenceOption.checked = false;
+		residenceOption.value = item.ResidenceId;
+		residenceOption.label = item.ResidenceName;
 		residenceList.push(residenceOption);
 		return false;
 	  })
-	  this.setState({residenceList:residenceList});
+	  //console.log(residenceList);
+	  this.setState({
+		residenceList:residenceList,
+		selectedRes:[residenceList[0].value]
+	  });
 	})
   }
   getShortListStr = (shortListStr) => {
 	this.setState({shortListStr:shortListStr})
 　}
-  imagePickerChange = (files,type,index) =>{
-	console.log(files[0]);
-	this.setState({
-	  eventPhotos:files
-	})
-	if(files.length === 0)return false;
-
-  }
   checkForm(){
 	const {
 	  title,
-	  residenceList,
 	  shortListStr,
 	  startDate,
 	  endDate,
@@ -127,10 +114,6 @@ class VoteAdd extends Component {
 	}
 	if(title.replace(/\s+/g,'').length <= 0){
 	  Toast.fail("请输入标题.");
-	  return false;
-	}
-	if(residenceList.filter(item => item.checked).length <= 0){
-	  Toast.fail("至少选择一个小区作为投票范围.");
 	  return false;
 	}
 	if(shortListStr.split(',').filter(item => item.replace(/\s+/g,'')).length <= 1){
@@ -152,15 +135,7 @@ class VoteAdd extends Component {
 	  return false;
 	});
 	VoteOptions += ']';
-	//console.log(VoteOptions);
-	let voteRangeDto = '{"ResidenceRange":"';
-	this.state.residenceList.filter(item => item.checked).map((item,index) => {
-	  if(index !== 0) voteRangeDto += ',';
-	  voteRangeDto += item.id;
-	  return false;
-	});
-	voteRangeDto += '"}';
-	console.log(voteRangeDto);
+	let voteRangeDto = '{"ResidenceRange":"' + this.state.selectedRes[0] + '"}';
 	let data = {
 	  Title:this.state.title,
 	  Content:this.state.describe,
@@ -173,30 +148,31 @@ class VoteAdd extends Component {
 	  EndTime:this.state.endDate.toJSON(),
 	  AttentionDegree:0,
 	  VoteOptions:VoteOptions,
-	  voteRangeDto:voteRangeDto,
+	  VoteRangeDto:voteRangeDto,
 	  Status:1,
+	  VoteType: this.state.type[0],
 	};
-	//console.log(data);
+	console.log(data);
 	//console.log(JSON.stringify(data));
 	let url = sessionStorage.apiUrl + '/api/Vote/AddVoteProject';
-	post(url,data,this)
-	.then(res => {
-	  console.log(res.Data);
-	  if(res.Data === 'OK'){
-	  	setTimeout(()=>{
-	      this.setState({
-	    	submitSuccess:true,
-	      })
-	    },500);
-		Toast.info('添加成功');
-	  }else{
+	let text = '您确认要添加投票吗？';
+	Modal.alert('提示',text,[
+	  {text:'否',onPress: () => {
 		this.setState({
 		  addLoading:false,
 		})
-		Toast.info('添加失败');
-	  }
-	  
-	})
+	  }},
+	  {text:'是',onPress: () => {
+		post(url,data).then(res => {
+		  console.log(res);
+		  if(res.Data === 'OK'){
+			selFunc.modal(SubmitSuccess);
+		  }else{
+			Toast.fail('提交失败!');
+		  }
+		})
+	  }},
+	])
 	
   }
   renderMaximumPicker = () => {
@@ -222,15 +198,34 @@ class VoteAdd extends Component {
 	}
   }
   render() {
-	if(this.state.submitSuccess){
-	  return (<Redirect to='/vote/addSuccess' />);
-	}
-	  
+
+  
+	const voteTypeList = [
+	  {value:1,label:'制定和修改业主大会议事规则'},
+	  {value:2,label:'制定和修改建筑物及其附属设施的管理规约'},
+	  {value:3,label:'选举业主委员会或者更换业主委员会成员'},
+	  {value:4,label:'选聘和解聘物业服务企业或者其他管理人'},
+	  {value:5,label:'筹集和使用建筑物及其附属设施的维修资金'},
+	  {value:6,label:'改建、重建建筑物及其附属设施'},
+	  {value:7,label:'有关共有和共同管理权利的其他重大事项'},
+	];
+  
+  
     return (
 	  <div>
 		<TopNavBar title='添加投票' showLC/>
 		<div className='formBox' >
 		  <List>
+		    <Picker 
+		      data={voteTypeList} 
+		  	  cols={1} 
+		  	  value={this.state.type}
+		      onChange={type => this.setState({ type })}
+		      onOk={type => this.setState({ type })}
+		    >
+              <List.Item arrow='horizontal'>投票类型</List.Item>
+            </Picker>
+		  
 		    <InputItem
 		      clear
 		  	  placeholder = '请输入'
@@ -245,7 +240,7 @@ class VoteAdd extends Component {
 		      value={this.state.describe}
 		      onChange={describe => this.setState({ describe })}
 		    />
-		    <List.Item  arrow='horizontal'>活动图片</List.Item>
+		    <List.Item >活动图片</List.Item>
           
 		    <WingBlank style={{paddingTop:8}}>
 		      <ImgUpload toParent={this.getFileIds.bind(this)}/>
@@ -263,12 +258,6 @@ class VoteAdd extends Component {
 		  	/>}
 		    >是否多选</List.Item>
 		    {this.renderMaximumPicker()}
-		    <List.Item
-		      extra={<Switch 
-		  	  checked={this.state.isAnonymous}
-		  	  onClick={(isAnonymous) => this.setState({ isAnonymous })}
-		  	/>}
-		    >是否匿名</List.Item>
 		    <DatePicker
 		      value={this.state.startDate}
 		      onChange={startDate => this.setState({ startDate })}
@@ -297,17 +286,16 @@ class VoteAdd extends Component {
 		  	  onClick={(isOrot) => this.setState({ isOrot })}
 		  	/>}
 		    >一房一票</List.Item>
-		    <List.Item style={{borderTop:'10px solid #ddd'}}  arrow='horizontal'>投票范围</List.Item>
-		    {this.state.residenceList.map((item,index) => 
-		      <CheckboxItem 
-		  		key = {'residenceItem'+index}
-		  		checked={item.checked} 
-		  		onChange={this.setVoteRange.bind(this,index)}
-		  	  >
-		  		{item.Name}
-		  	  </CheckboxItem>
-		    )}
-          
+		    <Picker 
+		      data={this.state.residenceList} 
+		  	  cols={1} 
+		  	  value={this.state.selectedRes}
+		      onChange={selectedRes => this.setState({ selectedRes })}
+		      onOk={selectedRes => this.setState({ selectedRes })}
+			  
+		    >
+              <List.Item arrow='horizontal'>选择小区</List.Item>
+            </Picker>
 		  </List>
 	      <div className='operationBtns'>
 		    <WingBlank>
@@ -332,7 +320,7 @@ class VoteAdd extends Component {
 
 const style ={
   loadingBtn:{
-  	backgroundColor:'#a17e7e',
+  	backgroundColor:'#18a3fe',
   	color:'white'
   },
   btn:{

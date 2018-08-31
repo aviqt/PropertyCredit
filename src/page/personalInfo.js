@@ -6,11 +6,12 @@ import {
 	Picker,
 	WingBlank,
 	Accordion,
+	Modal,
 	WhiteSpace
  } from 'antd-mobile';
 import TopNavBar from './components/topNavBar';
 import { Link } from 'react-router-dom'
-import {get,put} from '../utils/request';
+import {get,put,post} from '../utils/request';
 import {loginToSetToken} from '../utils/func';
 import ImgChange from './components/imgChange';
 import { message} from 'antd';
@@ -48,7 +49,7 @@ class PersonalInfo extends Component {
 	.then(res => {
 	  if(!res.Data)return false;
 	  let residenceList = [];
-	  //console.log(res);
+	  console.log(res);
 	  res.Data.map(item => {
 		let residenceOption = [];
 		residenceOption.Id = item.Id;
@@ -61,8 +62,23 @@ class PersonalInfo extends Component {
 	  this.setState({residenceList:residenceList});
 	})
   }
-  savePersonalInfo = () => {
-	console.log(this.state.sex[0])
+  weChatLogout = () => {
+	let url = sessionStorage.apiUrl + '/api/Account/WeChatLogout';
+	let text = '是否确认要登出？';
+	Modal.alert('登出后将解除绑定微信',text,[
+	  {text:'否'},
+	  {text:'是',onPress: () => {
+		post(url).then(res => {
+		  sessionStorage.setItem('Authorization','');
+		  const weChatCode = sessionStorage.weChatCode;
+		  if(weChatCode && weChatCode !== 'null'){
+			window.location.href = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxff2456f987559043&redirect_uri=http%3a%2f%2f' + sessionStorage.redirectUrl + '%2fWeChatVote%2f%23%2flogin&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect';
+		  } else{
+			window.location.href = '#/login';
+		  }
+		})
+	  }},
+	])
   }
   getImgId(id){
 	const {user} = this.state;
@@ -107,38 +123,21 @@ class PersonalInfo extends Component {
 			    disabled
 		        value={user.FMobilePhone}
 		      >手机号码</InputItem>
+			  <Link to='/residence/list'>
+			    <List.Item arrow="horizontal" className='linkListItem'>
+			  	  我的小区
+			    </List.Item>
+			  </Link>
 		    </List>
 		  </List>
-		  <div style={{borderTop:"15px solid #e4e4e4"}}>
-		    <Accordion className="my-accordion" accordion >
-              <Accordion.Panel header={<div >我的小区 <img src={myVoteIcon1} alt='myVoteIcon1' /></div>} >
-                <List >
-				  {residenceList.map((item,index) => 
-				    <List.Item key={index} arrow="horizontal">
-					  <Link to={'/bindAreaInfo/' + item.Id} style={{color:'#333',display:'block'}}>
-					    {item.Name + '(' + item.ApplyStatusStr + ')'}
-					  </Link>
-					</List.Item>
-				  )}
-                  <List.Item arrow="horizontal">
-				    <Link to='/bindArea' style={{display:'block'}}>
-				      添加新的小区
-				    </Link>
-				  </List.Item>
-                </List>
-              </Accordion.Panel>
-            </Accordion>
-		  </div>
+	      <div className='operationBtns' style={{borderTop:"15px solid #e4e4e4"}}>
+		    <WingBlank>
+		      <WhiteSpace size="md" />
+		      <Button type='warning' onClick={this.weChatLogout}>登出</Button>
+		      <WhiteSpace size="md" />
+		    </WingBlank>
+	      </div>
 		</div>
-	    <div className='operationBtns' style={{display:'none'}}>
-		  <WingBlank>
-		    <WhiteSpace size="md" />
-		    <Button style={style.btn} activeStyle={{backgroundColor:"gray"}}>实名认证</Button>
-		    <WhiteSpace size="md" />
-		    <Button onClick={this.savePersonalInfo}>保存</Button>
-		    <WhiteSpace size="md" />
-		  </WingBlank>
-	    </div>
       </div>
     );
   }
@@ -155,12 +154,10 @@ const style = {
 	top:10,
 	right:5,
   },
-  btn:{
-    backgroundColor:'#18a3fe',
-    color:'#fff',
+  btnLogout:{
+    background:'#aa0000',
+    color:'white',
   },
-  btnActive:{
-    backgroundColor:'gray'
-  },
+
 }; 
 export default PersonalInfo;

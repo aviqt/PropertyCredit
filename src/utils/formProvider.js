@@ -62,6 +62,7 @@ function formProvider(fields){
 	  }
 	  render(){
 	    const {form,formValid} = this.state;
+		//console.log(this.props);
 	    return (
 		  <Comp 
 		    {...this.props} 

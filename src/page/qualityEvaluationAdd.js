@@ -13,17 +13,17 @@ import {
 	WhiteSpace
  } from 'antd-mobile';
 import TopNavBar from './components/topNavBar';
-import SubmitSuccess from './components/submitSuccess';
-import ImgUpload from './components/imgUpload';
 import { Link,Redirect  } from 'react-router-dom';
 import {get,post} from '../utils/request';
-import {selFunc} from '../utils/func';
+import ImgUpload from './components/imgUpload';
 
 const CheckboxItem = Checkbox.CheckboxItem;
+const nowTimeStamp = Date.now();
+const now = new Date(nowTimeStamp);
+const nowPlus = new Date(nowTimeStamp + (24*3600*1000));
 
 
-
-class ComplaintAdd extends Component {
+class QualityEvaluationAdd extends Component {
   constructor(props) {  
     super(props);  
     this.state = { 
@@ -32,23 +32,36 @@ class ComplaintAdd extends Component {
 	  submitSuccess:false,
 	  residenceList:[],
 	  
-	  title:'',
-	  content:'',
-	  type:[1],
 	  selectedRes:[],
-	  FileIds:'',
+	  
+	  evaluationList:[],
+	  content:'',
+	  title:'',
+	  startDate:now,
+	  endDate:nowPlus,
 	}
   }
   componentDidMount(){
 	this.getResidenceList();
+	this.getEvaluationList();
   }
-  getFileIds(info){
-	//console.log(info);
-	let str = selFunc.getFileIdsStr(info);
-	this.setState({
-	  FileIds:str
-	})
+  setEvaluationList(index,e){
+	let {evaluationList}  = this.state;
+	evaluationList[index].checked = e.target.checked;
+	this.setState({evaluationList})
   }
+  getEvaluationList(){
+	let evaluationList = [
+	  {id:'aa',Name:'综合服务',checked:false},
+	  {id:'aa',Name:'秩序管理',checked:false},
+	  {id:'aa',Name:'卫生保洁',checked:false},
+	  {id:'aa',Name:'绿化养护',checked:false},
+	  {id:'aa',Name:'物业维护',checked:false},
+	];
+	this.setState({evaluationList}); 
+  }
+  
+  
   getResidenceList(){
 	get(sessionStorage.apiUrl + '/api/Residence/UserResidenceList',this)
 	.then(res => {
@@ -62,57 +75,44 @@ class ComplaintAdd extends Component {
 		residenceList.push(residenceOption);
 		return false;
 	  })
-	  console.log(residenceList);
-	  this.setState({
-		residenceList:residenceList,
-		selectedRes:[residenceList[0].value]
-	  });
+	  //console.log(residenceList);
+	  this.setState({residenceList});
 	})
   }
 
   checkForm(){
 	const {
-	  title,
-	  content,
-	  selectedRes,
-	  type,
-	  FileIds
+	  
 	} = this.state;
-	if(title.replace(/\s+/g,'').length <= 0){
-	  Toast.fail("请输入标题.");
-	  return false;
-	}
-	let data = {
-	  Title:title,
-	  Content:content,
-	  ResidenceId:selectedRes[0],
-	  ComplaintType:type[0],
-	  FileIds:FileIds,
-	};
-	
-	return data;
+
+	return true;
   }
   addBtnClick = () => {
 	if(this.state.addLoading) return false;
-	let data = this.checkForm();
-	if(!data)return false;
+	if(!this.checkForm())return false;
 	this.setState({
 	  addLoading:true,
 	})
+	const {content,selectedRes,FileIds} = this.state;
+	let data = {
+	  content:content,
+	  selectedRes:selectedRes[0],
+	  FileIds:FileIds,
+	};
 	console.log(data);
-	//return false;
-	let url = sessionStorage.apiUrl + '/api/Complaint/';
-	post(url,data)
+	
+	return false;
+	let url = sessionStorage.apiUrl + '/api/Vote/AddVoteProject';
+	post(url,data,this)
 	.then(res => {
-	  console.log(res);
-	  if(res.State === 'Success'){
-	  	//setTimeout(()=>{
-	    //  this.setState({
-	    //	submitSuccess:true,
-	    //  })
-	    //},500);
-		//Toast.info('添加成功');
-		selFunc.modal(SubmitSuccess);
+	  console.log(res.Data);
+	  if(res.Data === 'OK'){
+	  	setTimeout(()=>{
+	      this.setState({
+	    	submitSuccess:true,
+	      })
+	    },500);
+		Toast.info('添加成功');
 	  }else{
 		this.setState({
 		  addLoading:false,
@@ -128,17 +128,10 @@ class ComplaintAdd extends Component {
 	  return (<Redirect to='/vote/addSuccess' />);
 	}
 	  
-	const complaintTypeList = [
-	  {value:1,label:'投诉'},
-	  {value:2,label:'建议'},
-	  {value:3,label:'报修'},
-	];
-	  
-	  
     return (
 	  <div>
-		<TopNavBar title='物业投诉' showLC/>
-		<div className='formBox' >
+		<TopNavBar title='质量评价' showLC/>
+		<div className='formBox' style={{backgroundColor:'#efefef'}}>
 		  <List>
 		    <Picker 
 		      data={this.state.residenceList} 
@@ -147,37 +140,48 @@ class ComplaintAdd extends Component {
 		      onChange={selectedRes => this.setState({ selectedRes })}
 		      onOk={selectedRes => this.setState({ selectedRes })}
 		    >
-              <List.Item  arrow='horizontal'>小区名称</List.Item>
+              <List.Item style={{display:'none'}} arrow='horizontal'>小区名称</List.Item>
             </Picker>
-		    <Picker 
-		      data={complaintTypeList} 
-		  	  cols={1} 
-		  	  value={this.state.type}
-		      onChange={type => this.setState({ type })}
-		      onOk={type => this.setState({ type })}
-		    >
-              <List.Item  arrow='horizontal'>投诉类型</List.Item>
-            </Picker>
-			
-			
 			<InputItem 
-			  placeholder = '标题'
+			  placeholder = '评价标题'
 			  style={{fontSize:20}}
+		      clear
 		      value={this.state.title}
 		      onChange={title => this.setState({ title })}
 			/>
+			
 		    <TextareaItem
-		  	  placeholder = '请输入您的投诉内容'
-		  	  rows='8'
+		  	  placeholder = '补充描述（选填）'
+		  	  rows='2'
 		  	  autoHeight
 		      value={this.state.content}
 		      onChange={content => this.setState({ content })}
 		    />
-		    <List.Item >添加图片</List.Item>
-		    <WingBlank style={{paddingTop:8,paddingBottom:8}}>
-		      <ImgUpload toParent={this.getFileIds.bind(this)}/>
-		    </WingBlank>
-
+			{this.state.evaluationList.map((item,index) => 
+		      <CheckboxItem 
+		  		key = {index}
+		  		checked={item.checked} 
+		  		onChange={this.setEvaluationList.bind(this,index)}
+		  	  >
+		  		{item.Name}
+		  	  </CheckboxItem>
+		    )}
+			
+			<div style={{height:30,backgroundColor:'#efefef'}}></div>
+			<DatePicker
+			  mode='date'
+		      value={this.state.startDate}
+		      onChange={startDate => this.setState({ startDate })}
+		    >
+		      <List.Item arrow='horizontal'>开始日期</List.Item>
+		    </DatePicker>
+		    <DatePicker
+			  mode='date'
+		      value={this.state.endDate}
+		      onChange={endDate => this.setState({ endDate })}
+		    >
+		      <List.Item arrow='horizontal'>截止日期</List.Item>
+		    </DatePicker>
 		  </List>
 	      <div className='operationBtns'>
 		    <WingBlank>
@@ -189,9 +193,6 @@ class ComplaintAdd extends Component {
 		  	  >
 		  	    {this.state.addLoading?'提交中 Loading':'提交'}
 		  	  </Button>
-		      <WhiteSpace size='md' />
-		      <Link to='/complaint/list' className='am-button'><span>取 消</span></Link>
-		      <WhiteSpace size='md' />
 		    </WingBlank>
 	      </div>
 		</div>
@@ -202,7 +203,7 @@ class ComplaintAdd extends Component {
 
 const style ={
   loadingBtn:{
-  	backgroundColor:'#18a3fe',
+  	backgroundColor:'#a17e7e',
   	color:'white'
   },
   btn:{
@@ -213,4 +214,4 @@ const style ={
     backgroundColor:'gray'
   },
 }
-export default ComplaintAdd;
+export default QualityEvaluationAdd;
