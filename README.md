@@ -209,4 +209,45 @@ get(url).then(res => {
 })
 ```
 
+## 高阶组件
 
+高阶组件就是一个函数，传给它一个组件，它返回一个新的组件。可以避免大量重复的逻辑；
+
+简单的高阶组件例子，代码：
+
+```js
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+
+export HComponent = (OriginalComponent) => {
+  class NewComponent extends Component {
+
+
+    // 一些通用的操作
+
+    render () {
+      return <OriginalComponent />
+    }
+  }
+
+  return NewComponent
+}
+```
+
+使用：
+
+```js
+import React, { Component } from 'react'
+import { HComponent } from './HComponent'
+
+class Page extends Component {
+  render () {
+    return (
+      <div>page</div>
+    )
+  }
+}
+Page = HComponent(Page);
+
+export default Page
+```
