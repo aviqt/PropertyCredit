@@ -8,8 +8,10 @@ import TopNavBar from './components/topNavBar';
 import Footer from './components/footer';
 import ListView from './components/listView';
 import {selFunc} from '../utils/func';
+import {selImg} from '../utils/config';
+import {get} from '../utils/request';
 
-import {getQueryString,loginToSetToken} from '../utils/func';
+import {getQueryString} from '../utils/func';
 
 class VoteList extends Component {
   constructor(props) {  
@@ -18,7 +20,9 @@ class VoteList extends Component {
 	  keyWords:'',
 	  rows:10,
 	  showVoted:1,
-	  hasToken:!(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' )
+	  voteTypeList:[],
+	  hasToken:!(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' ),
+	  isHA:false
 	}
   }
   setShowVoted = (value) =>{
@@ -26,48 +30,56 @@ class VoteList extends Component {
   	  showVoted:value,
     })
   }
+  //投票类型
+  getVoteTypeList= ()=> {
+	let url = sessionStorage.apiUrl + '/api/ItemData/List?enCode=VoteBusiness';
+	let voteTypeList = [];
+	get(url).then(res => {
+	  res.Data && res.Data.map(item => {
+	    let typeOption = [];
+	    typeOption.value = item.code;
+	    typeOption.label = item.text;
+	    voteTypeList.push(typeOption);
+	    return false;
+	  })
+	  this.setState({
+		voteTypeList,
+	    type:[voteTypeList[0].value],
+	  })
+	})
+  }
   back(){
 	window.postMessage('back');
   }
-  
-  modal(Component){
-	let body = document.body;
-	let showDom = document.createElement("div");
-	// 设置基本属性
-	showDom.style.position = 'absolute';
-	showDom.style.top = '0px';
-	showDom.style.left = '0px';
-	showDom.style.width = '100%';
-	showDom.style.height = '100%';
-	showDom.style.backgroundColor = 'rgba(0,0,0,.5)';
-	showDom.style.zIndex = 10;
-        // 自我删除的方法
-	let close = () => {
-		ReactDOM.unmountComponentAtNode(showDom);
-		body.removeChild(showDom);
-	}
-	
-	showDom.addEventListener("click",close,false); 
-	body.appendChild(showDom);
-	ReactDOM.render(
-		<div className='modal'>aslkdjsaldj</div>,
-		showDom
-	);
+  componentDidMount(){
+	this.isHomeownersAssociation();
+	this.getVoteTypeList();
+  }
+  //是否显示添加投票按钮
+  isHomeownersAssociation = ()=> {
+	let url = sessionStorage.apiUrl + '/api/Residence/UserResidenceList';
+	get(url).then(res => {
+	  let isHA = true && (res.Data.filter(item => item.RoleName === '业委会成员').length > 0);
+	  this.setState({isHA});
+	})
   }
   render() {
     if(getQueryString('router')){
 	  return (<Redirect to={getQueryString('router')} />);
     }
-    const {keyWords,rows,showVoted} = this.state;
+    const {keyWords,rows,showVoted,isHA,voteTypeList} = this.state;
 	let url = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectList?isvoted=' + showVoted + '&keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
-	const tabList = [
-	  {value:1,title:'待投表决'},
-	  {value:2,title:'已投表决'},
-	];
+	let imgSrcPreUrl = sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=';
 	
+	const tabList = [
+	  {value:1,title:'未投票'},
+	  {value:2,title:'已投票'},
+	];
+	if(voteTypeList.length <= 0) return false;
+	//console.log(voteTypeList.filter(itemX => itemX.value == 3));
     return (
 	  <div>
-		<TopNavBar title='投票表决' addPage='/vote/add' />
+		<TopNavBar title='投票表决' addPage={isHA?'/vote/add':''} />
 		<div className='mainBox' style={{bottom:0}}>
 		  <div className='tabMenu'>
 		    {tabList.map(item =>
@@ -84,22 +96,36 @@ class VoteList extends Component {
 			onSubmit={keyWords => {this.setState({keyWords})}}
 			onClear={keyWords => {this.setState({keyWords})}}
 		  />
-		  <div className='listBox' style = {{top:100,display:'none'}}>
-			<div className='item' onClick={this.modal}>123</div>
-		  </div>
 		  <ListView
 		    style = {{top:100}}
-		    className = 'listBox' 
+		    className = 'VoteList' 
 			page = {this}
 			url={url}
 		    row ={(item,index) => 
 		  	  <Link to={{pathname:'/vote/page/' + item.Id ,query:{voted:showVoted === 1}}} key={'vote-item'+index}>
 		  	    <div className='item'>
 		  	  	  <strong>{selFunc.renderHeightlightKeyWords(item.Title,keyWords)}</strong>
-		  	  	  <span>发起人：{item.CreatorName}</span>
-		  	  	  <span>&nbsp;</span>
-		  	  	  <span>开始日期：{selFunc.formatDate(item.StartTime,'-')}</span>
-		  	  	  <span>截止日期：{selFunc.formatDate(item.EndTime,'-')}</span>
+				  <div className='img'>
+				    <img 
+					  src={ 
+					    item.FileIds && item.FileIds !== '[]'  
+					    ? (imgSrcPreUrl+JSON.parse(item.FileIds)[0].fileid)
+						: selImg.defaultImg 
+					  } 
+					/>
+				  </div>
+				  <div className='info'>
+				    <span style={{color:'#fea723'}}>{item.CreatorName}</span>
+		  	  	    <span>开始日期：{selFunc.formatDate(item.StartTime,'-')}</span>
+		  	  	    <span>截止日期：{selFunc.formatDate(item.EndTime,'-')}</span>
+				  </div>
+				  <div 
+				    className={'status status_' + (item.StatusStr === '已结束' ?'0':'1')}
+					style={{display:showVoted===2?'none':''}}
+				  >{item.StatusStr}</div>
+				  <div className={'type type_' + item.VoteBusiness}>{voteTypeList.filter(itemX => itemX.value == item.VoteBusiness)[0].label}</div>
+				  
+		  	  	  <div className='isgiveup' style={{display:item.Isgiveup === '已弃票'?'':'none'}}><img src={selImg.isgiveup} /></div>
 		  	    </div>
 		  	  </Link>
 			}

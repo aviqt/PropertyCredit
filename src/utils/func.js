@@ -159,7 +159,17 @@ let selFunc = {
     },
 	handleImageErrored(defaultImg,e){
 	  e.target.src = defaultImg;
-    }
+    },
+	delArrayRepeat(arr,field){
+	  arr = arr.sort((a,b) => b[field].localeCompare(a[field]));
+	  let newArr = [arr[0]];
+	  arr.map(item => {
+	    if(item[field] !== newArr[newArr.length - 1][field]){
+	  	  newArr.push(item);
+	    }
+	  });
+	  return newArr;
+	}
 }
 
 export {

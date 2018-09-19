@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
-
-
-
-
+import banBack from '../../utils/banBack';
+import {selFunc} from '../../utils/func';
+import {selImg} from '../../utils/config';
 
 
 class PicView extends Component{
@@ -10,32 +9,15 @@ class PicView extends Component{
 	const {onClose} = this.props;
 	onClose();
   }
-  banBack = (e)=>{
-	if (e.state && e.state.target === 'MeanSure') {
-	  this.handleClose();
-	  window.history.go(-1);
-	} 
-  }
-  componentDidMount(){
-	if (!(window.history.state && window.history.state.target == 'Final')) {
-	  window.history.pushState({target: 'MeanSure', random: Math.random()}, '', '');
-	  window.history.pushState({target: 'Final', random: Math.random()}, '', '');
-	}
-	window.addEventListener('popstate', this.banBack, false);
-  }
-  componentWillUnmount(){
-	window.removeEventListener('popstate', this.banBack, false);
-	if(window.history.state.target === 'Final'){
-	  window.history.go(-2);
-	}
-  }
   render(){
 	const {options} = this.props;
   	return (
 	  <div className='picView' style={{height:window.innerHeight,width:window.innerWidth}} onClick={this.handleClose}>
-		<img src={options.imgUrl} alt='1' />
+		<img src={options.imgUrl} alt='1' onError={selFunc.handleImageErrored.bind(this,selImg.imgLoadError)}/>
 	  </div>
 	);
   }
 }
+PicView = banBack(PicView);
+
 export default PicView;

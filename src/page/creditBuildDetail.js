@@ -45,7 +45,7 @@ class CreditBuildDetail extends Component {
 	let imgSrcPreUrl = sessionStorage.fileUrl + '/File/DownloadFile?iszip=false&fileids=';
 	get(url).then(res => {
 	  var newData = res.Data;
-	  console.log(newData);
+	  //console.log(newData);
 	  data.title = newData.Title;
 	  data.content = newData.Description;
 	  data.time = newData.CreatorTime;

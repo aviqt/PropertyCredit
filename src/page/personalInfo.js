@@ -30,7 +30,7 @@ class PersonalInfo extends Component {
   }
   componentDidMount(){
     this.getUserInfo();
-    this.getResidenceList();
+    //this.getResidenceList();
   }
   getUserInfo(){
 	const {user} = this.state;
@@ -49,7 +49,7 @@ class PersonalInfo extends Component {
 	.then(res => {
 	  if(!res.Data)return false;
 	  let residenceList = [];
-	  console.log(res);
+	  //console.log(res);
 	  res.Data.map(item => {
 		let residenceOption = [];
 		residenceOption.Id = item.Id;

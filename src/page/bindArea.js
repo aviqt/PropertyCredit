@@ -36,6 +36,10 @@ class BindArea extends Component {
 	  communityInfoList:[],
 	  residenceInfo:[],
 	  residenceInfoList:[],
+	  houseList:[],
+	  selectedHouse:[],
+	  familyList:[],
+	  selectedFamily:[],
 	  
 	  
 	  FileIds:'',
@@ -58,27 +62,40 @@ class BindArea extends Component {
 	    this.setState({communityInfo:[]});
 	    this.setState({residenceInfo:[]});
 	}
+	//console.log(fieldName.substr(0,fieldName.length-4));
 	get(url,this)
 	.then(res => {
 	  let areaInfoList = [];
 	  res.Data.map(item => {
 		areaInfoList.push({value:item.F_ID,label:item.F_FULL_NAME,children:[]});
 	  });
-	  this.setState({[fieldName]:areaInfoList});
+	  this.setState({
+		[fieldName]:areaInfoList,
+		//[fieldName.substr(0,fieldName.length-4)]:[areaInfoList[0].value]
+	  });
+	  //switch(fieldName){
+	  //  case 'districtInfoList':
+	  //    this.getAreaInfo('streetInfoList',areaInfoList[0].value);
+	  //	  break;
+	  //  case 'streetInfoList':
+	  //    this.getAreaInfo('communityInfoList',areaInfoList[0].value);
+	  //	  break;
+	  //  case 'communityInfoList':
+	  //    this.getResidenceInfo(areaInfoList[0].value);
+	  //}
 	})
   }
-  
   getResidenceInfo = (communityCode) =>{
 	//console.log(communityCode[0]);
-	let url = 'http://saturn.51vip.biz:81/data-system/api/bigScreen/house/getBasicHouseInfo?community_code=' + communityCode + '&pageNo=1&pageSize=999';
-	fetch(url,{method:'GET'})
-	.then(res => res.json())
-	.then(res => {
+	let url = sessionStorage.apiUrl + '/api/Residence/ResidenceByCommunity?community=' + communityCode + '&pageNo=1&pageSize=999';
+	get(url).then(res => {
 	  let areaInfoList = [];
-	  res.data.pageData.map(item => {
-		areaInfoList.push({value:item.ID + ',' + item.NAMES,label:item.NAMES,children:[]});
+	  res.Data.map(item => {
+		areaInfoList.push({value:item.id,label:item.text,children:[]});
 	  });
-	  this.setState({residenceInfoList:areaInfoList});
+	  this.setState({
+		residenceInfoList:areaInfoList
+	  });
 	})
   }
 
@@ -93,29 +110,96 @@ class BindArea extends Component {
 	  return false;
 	}
 	const url = sessionStorage.apiUrl + '/api/Residence/AddUserResidence';
+	let ResidenceName = this.state.residenceInfoList.filter(item => item.value === this.state.residenceInfo[0])[0].label;
 	let data = {
-	  ResidenceName: this.state.residenceInfo[0].split(',')[1],
-	  ResidenceId: this.state.residenceInfo[0].split(',')[0],
-	  BuildingNo: this.state.BuildingNo,
-	  UnitNo: this.state.UnitNo,
+	  ResidenceName,
+	  ResidenceId: this.state.residenceInfo[0],
+	  FamilyId: this.state.selectedFamily[0],
 	};
-	console.log(data);
-	post(url,data,this)
+	post(url,data)
 	.then(res => {
-	  console.log(res);
+	  //console.log(res);
 	  if(res.Data === 'OK'){
 		Toast.info('提交成功');
-		this.props.history.push('/vote/list');
+		this.props.history.go(-1);
 	  }else{
 		Toast.info('提交失败');
 		this.setState({
 		  submitLoading:false,
 		})
 	  }
-	  
 	})
   }
-
+//根据小区ID获取楼栋和用户列表
+  getHouseByResidenceId = (selectedRes) => {
+	let url = sessionStorage.apiUrl + '/api/Residence/HouseByResidenceId?residenceId=' + selectedRes[0];
+	get(url).then(res => {
+	  if(!res.Data)return false;
+	  let houseList = [];
+	  //console.log(res);
+	  res.Data.map(item => {
+		let houseOption = [];
+		houseOption.value = item.Id;
+		houseOption.label = item.Name;
+		houseList.push(houseOption);
+		return false;
+	  })
+	  //console.log(residenceList);
+	  this.setState({
+		houseList,
+		selectedHouse:res.Data.length === 0 ? [] :[houseList[0].value]
+	  });
+	  if(res.Data.length === 0)return false;
+	  this.getFamilyByHouseId([houseList[0].value]);
+	})
+  }
+  //获取房号
+  getFamilyByHouseId = (selectedHouse) => {
+	let url = sessionStorage.apiUrl + '/api/Residence/FamilyByHouseId?houseId=' + selectedHouse[0];
+	get(url).then(res => {
+	  if(!res.Data)return false;
+	  let familyList = [];
+	  res.Data.map(item => {
+		let familyOption = [];
+		familyOption.value = item.Id;
+		familyOption.label = item.FamilyNo;
+		familyList.push(familyOption);
+		return false;
+	  })
+	  this.setState({
+		familyList,
+		selectedFamily:res.Data.length === 0 ? [] :[familyList[0].value]
+	  });
+	})
+  }
+  
+  //渲染楼栋和单元选择框
+  renderSelectHouseFamily = ()=> {
+	const {
+	  residenceInfo,
+	} = this.state;
+	return (
+	  <div>
+	    <Picker 
+	      data={this.state.houseList} 
+	      cols={1} 
+	      value={this.state.selectedHouse}
+	      onOk={selectedHouse => {this.setState({ selectedHouse });this.getFamilyByHouseId(selectedHouse)}}
+	    >
+	      <List.Item arrow='horizontal' style={{display:residenceInfo.length === 0?'none':''}}>楼栋</List.Item>
+	    </Picker>
+	    <Picker 
+	      data={this.state.familyList} 
+	      cols={1} 
+	      value={this.state.selectedFamily}
+	      onOk={selectedFamily => {this.setState({ selectedFamily });}}
+	    >
+	      <List.Item arrow='horizontal'  style={{display:residenceInfo.length === 0?'none':''}}>房号</List.Item>
+	    </Picker>
+	  </div>
+	)
+  }
+  
   getFileIds(info){
 	//console.log(info);
 	if(info.file.status === 'done' || info.file.status === 'removed'){
@@ -133,48 +217,61 @@ class BindArea extends Component {
 	};
   }
   render() {
+	const {
+	  districtInfoList,
+	  districtInfo,
+	  streetInfoList,
+	  streetInfo,
+	  communityInfoList,
+	  communityInfo,
+	  residenceInfoList,
+	  residenceInfo,
+	} = this.state;
+	  
+	  
+	  
     return (
 	  <div>
-		<TopNavBar title='绑定小区'/>
+		<TopNavBar showLC title='绑定小区'/>
 		<div className='formBox peronalInfoForm' >
 		  <List>
 		    <Picker 
-			  data={this.state.districtInfoList} 
+			  data={districtInfoList} 
 			  cols={1} 
-			  value={this.state.districtInfo}
+			  value={districtInfo}
 			  onOk={districtInfo => {this.setState({ districtInfo });this.getAreaInfo('streetInfoList',districtInfo)}}
 			>
 			  <List.Item  arrow='horizontal'>区县</List.Item>
 			</Picker>
 		    <Picker 
-			  data={this.state.streetInfoList} 
+			  data={streetInfoList} 
 			  cols={1} 
-			  disabled={this.state.districtInfo.length === 0}
-			  value={this.state.streetInfo}
+			  disabled={districtInfo.length === 0}
+			  value={streetInfo}
 			  onOk={streetInfo => {this.setState({ streetInfo });this.getAreaInfo('communityInfoList',streetInfo)}}
 			>
-			  <List.Item  arrow='horizontal'>街道</List.Item>
+			  <List.Item  arrow='horizontal' style={{display:districtInfo.length === 0?'none':''}}>街道</List.Item>
 			</Picker>
 		    <Picker 
-			  data={this.state.communityInfoList} 
+			  data={communityInfoList} 
 			  cols={1} 
-			  disabled={this.state.streetInfo.length === 0}
-			  value={this.state.communityInfo}
+			  disabled={streetInfo.length === 0}
+			  value={communityInfo}
 			  onOk={communityInfo => {this.setState({ communityInfo });this.getResidenceInfo(communityInfo);}}
 			>
-			  <List.Item  arrow='horizontal'>社区</List.Item>
+			  <List.Item  arrow='horizontal' style={{display:streetInfo.length === 0?'none':''}}>社区</List.Item>
 			</Picker>
 		    <Picker 
-			  data={this.state.residenceInfoList} 
+			  data={residenceInfoList} 
 			  cols={1} 
-			  disabled={this.state.communityInfo.length === 0}
-			  value={this.state.residenceInfo}
-			  onOk={residenceInfo => this.setState({ residenceInfo })}
+			  disabled={communityInfo.length === 0}
+			  value={residenceInfo}
+			  onOk={residenceInfo => {this.setState({ residenceInfo });this.getHouseByResidenceId(residenceInfo);}}
 			>
-			  <List.Item  arrow='horizontal'>小区</List.Item>
+			  <List.Item  arrow='horizontal' style={{display:communityInfo.length === 0?'none':''}}>小区</List.Item>
 			</Picker>
-			
-			<div style={{overflow:'hidden'}} className='unitRoomNum'>
+			{this.renderSelectHouseFamily()}
+			<div style={{overflow:'hidden',display:'none'}} className='unitRoomNum'>
 			  <div style={{width:'65%',float:'left'}}>
 			    <InputItem
 			      extra='单元 -'
@@ -211,9 +308,7 @@ class BindArea extends Component {
 		  	    style={style.btn} 
 		  	    activeStyle={style.btnActive}
 		  	    onClick={this.onSubmit}
-		  	  >提交认证</Button>
-		      <WhiteSpace size='md' />
-		      <Link to='/personalInfo' className='am-button'><span>取消</span></Link>
+		  	  >提交</Button>
 		      <WhiteSpace size='md' />
 		    </WingBlank>
 	      </div>

@@ -89,9 +89,12 @@ class ComplaintDetail extends Component {
 	  url = sessionStorage.apiUrl + '/api/Complaint/Audit?auditId=' + this.state.AuditId + '&auditStatus=' + ( isSolved ? 1 : 2) + '&auditComment=' + this.state.AuditComment + '&fileIds=' + this.state.FileIds;
 	  if(complaint.ApplyStatus === 1){
 		text = isSolved?'您确认要将此投诉转发给物业吗？':'您确认要驳回此投诉吗？';
+	  }else if(complaint.ApplyStatus === 12){
+		text = isSolved?'您确认此投诉已成功解决吗？':'您确认上报吗？';
+		  
 	  }
 	};
-	console.log(url);
+	//console.log(url);
 	Modal.alert('提示',text,[
 	  {text:'否'},
 	  {text:'是',onPress: () => {
@@ -113,6 +116,7 @@ class ComplaintDetail extends Component {
 	switch(ApplyStatus){
 	  case 1:
 	    if(!isManage)return;
+	  case 12:
 	  case 0:
 	    return ( 
 		  <List className='imgContentForm' style={{width:'100%',borderTop:'12px solid #eee'}}>
@@ -135,6 +139,7 @@ class ComplaintDetail extends Component {
   }
   renderStatus = ApplyStatus => {
 	const {complaint,isManage} = this.state;
+	console.log(complaint);
 	switch(ApplyStatus){
 	  case 2:
 	    return( 
@@ -194,6 +199,25 @@ class ComplaintDetail extends Component {
 			</div>
 		  </div>
 		);
+	  case 12:
+		if(!isManage)return;
+	    return ( 
+		  <div className='processReply'>
+			<div 
+			  onClick={this.complaintConfirm.bind(this,true)}
+			>
+			  <img src={require('../icon/good-gray.png')}  alt='img' />
+			  协调解决
+			</div>
+			<div 
+			  style={{border:'none'}}
+			  onClick={this.complaintConfirm.bind(this,false)}
+			>
+			  <img src={require('../icon/bad.png')} alt='img'  />
+			  问题上报
+			</div>
+		  </div>
+		);
 	  default:
 	    return;
 	}
@@ -224,6 +248,7 @@ class ComplaintDetail extends Component {
 	];
     return (
 	  <div>
+	  
 		<TopNavBar title={complaint.ResidenceName} showLC/>
 		<div className='formBox' style={{background:'#fff'}}>
 		  <div className='tabMenu' style={{background:'#fff',display:'none'}}>

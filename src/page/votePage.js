@@ -5,15 +5,18 @@ import {
 	Carousel,
 	NavBar,
 	Icon,
+	Modal,
 	ActivityIndicator,
 	WhiteSpace,
 	Toast
 } from 'antd-mobile';
 import CheckList from './components/checkList';
+import VoteOptionResult from './components/voteOptionResult';
 import TopNavBar from './components/topNavBar';
 import { Link } from 'react-router-dom';
 import {get,post} from '../utils/request';
 import {selFunc} from '../utils/func';
+import {selImg} from '../utils/config';
 import ImgList from './components/imgList';
 
 
@@ -33,21 +36,10 @@ class VotePage extends Component {
   }
 
   getVoteData(){
-	let vote ={
-	  title:'广东最美城市评选活动',
-	  describe:'广东省”最美城市“评选，快来为你的城市加油！',
+	let vote = {
 	  imgSrcList:[
-	    {src:'http://imgs.aixifan.com/o_1cbrsvae053bo0r11arplk15ia1k.jpg',name:'111'},
-	    {src:'http://imgs.aixifan.com/o_1cdi1tr211j2312t13r91d41m6e1m.jpg',name:'222'},
-	  ],
-	  endDate:'2018-06-01T00:00:00',
-	  voted:false,
-	  maximum:2,
-	  shortList:[
-	  	{id:0,name:'广州',votes:345,selected:false},
-	  	{id:1,name:'深圳',votes:787,selected:false},
-	  	{id:2,name:'汕头',votes:466,selected:false},
-	  	{id:3,name:'韶关',votes:453,selected:false}
+	  //  {src:'http://imgs.aixifan.com/o_1cbrsvae053bo0r11arplk15ia1k.jpg',name:'111'},
+	  //  {src:'http://imgs.aixifan.com/o_1cdi1tr211j2312t13r91d41m6e1m.jpg',name:'222'},
 	  ],
 	};
 
@@ -55,25 +47,18 @@ class VotePage extends Component {
 	let VoteProjectInfoUrl = sessionStorage.apiUrl + '/api/Vote/ParticipationVoteProjectInfo?keyValue=' + this.state.voteId;
 	let VoteOptionsListUrl = sessionStorage.apiUrl + '/api/Vote/VoteRecordOptionsCountList?keyValue=' + this.state.voteId;
 	let voteData = [];
-	let shortListData = [];
 	//获取投票项目信息
 	const hasToken = !(!sessionStorage.Authorization || sessionStorage.Authorization === 'null' );
 	if(!hasToken){
 	  VoteProjectInfoUrl = sessionStorage.apiUrl + '/api/Vote/VoteProjectInfo?keyValue=' + this.state.voteId;
 	}
 	
-	get(VoteProjectInfoUrl,this)
-	.then((res) => {
+	get(VoteProjectInfoUrl).then((res) => {
 	  if(res.Data){
 		voteData = res.Data;
 	  }
-	  console.log(voteData);
-	  vote.title = voteData.Title;
-	  vote.describe = voteData.Content;
-	  vote.endDate = voteData.EndTime;
-	  vote.maximum = voteData.VoteCount;
-	  vote.voted = voteData.Isvoted === '已投票'?true:false;
-	  vote.AttentionDegree = voteData.AttentionDegree;
+	  //console.log(res.Data);
+	  vote = Object.assign(vote,res.Data)
 	  if(voteData.FileIds && eval(voteData.FileIds).length !== 0){
 		let imgSrcList = [];
 	    eval(voteData.FileIds).map(item => {
@@ -85,26 +70,31 @@ class VotePage extends Component {
 	    });
 	    vote.imgSrcList = imgSrcList;
 	  }
-	  
 	  //获取投票选项
 	  get(VoteOptionsListUrl,this)
       .then((res) => {
-	    if(res.Data){
-	  	  shortListData = res.Data;
-	    }
-		console.log(res.Data);
-		let shortList = [];
-		//console.log(shortListData);
-		for(let i = 0; i < shortListData.length;i++){
-		  let shortItem = [];
-		  shortItem.id = res.Data[i].Id;
-		  shortItem.name = res.Data[i].Content;
-		  shortItem.votes = res.Data[i].OptionVote;
-		  shortItem.selected = res.Data[i].Isvoted === '已投票'?true:false;
-		  shortList.push(shortItem);
-		}
-		//console.log(shortList);
-		vote.shortList = shortList;
+		//console.log(res.Data)
+		let subproject = [];
+		res.Data && res.Data.map((item,index) => {
+		  let VoteOptions = [];
+		  JSON.parse(item.VoteOptions).map((itemX,indexX) => {
+			VoteOptions.push({
+			  Id:itemX.Id,
+			  Content:itemX.ContentName?itemX.ContentName:itemX.Content,
+			  OptionVoteCount:itemX.OptionVote,
+			  selected:itemX.Isvoted === '已投票'
+			});
+		  })
+		  subproject.push({
+			Id:item.Id,
+			Title:item.Title,
+			IsValid:item.IsValid === 1,
+			VoteCount:item.VoteCount,
+			selectable:!(vote.Isvoted === '已投票' || vote.Isgiveup === '已弃票'),
+			VoteOptions
+		  });
+		})
+		vote.subproject = subproject;
 		//console.log(vote);
 	    this.setState({
 	  	  loading:false,
@@ -116,11 +106,11 @@ class VotePage extends Component {
     .catch((err) => console.error(err));
 	
   }
-  getShortList = (shortList) => {
+  getVoteOptions = (index,VoteOptions) => {
 	let {vote} = this.state;
-	if(vote.voted) return;
-	vote.shortList = shortList;
-	//console.log(shortList);
+	if(vote.Isvoted === '已投票') return false;
+	vote.subproject[index].VoteOptions = VoteOptions;
+	//console.log(VoteOptions,index);
 	this.setState({
       vote:vote
     })
@@ -131,209 +121,144 @@ class VotePage extends Component {
 	this.setState({
 	  submitLoading:true,
 	})
-	const {voteId,vote} = this.state;
-	let AddVoteRecordUrl = sessionStorage.apiUrl + '/api/Vote/AddVoteRecord?keyValue=' + voteId;
-	  
-	let count = vote.shortList.filter((item) => item.selected).length;
-	if(count > vote.maximum){
-	  Toast.info('最多只能选' + vote.maximum + '项');
-	  this.setState({
-	    submitLoading:false,
-	  });
-	}else if(count === 0){
-	  Toast.info('请至少选择一项。');
-	  this.setState({
-	    submitLoading:false,
-	  });
-	}else{
-	  let optionsList = [];
-	  vote.shortList.filter(item => item.selected).map(item => {
-		let options = {
-		  OptionsId:item.id,
-		  VoterId:voteId,
-		  ProjectId:voteId
-		};
-		optionsList.push(options);
-		return false;
+	const {vote,voteId} = this.state;
+	let url = sessionStorage.apiUrl + '/api/Vote/AddVoteRecord?keyValue=' + voteId;
+    let data = [];
+	vote.subproject.map(item => {
+	  let VoteRecords = [];
+	  item.VoteOptions.filter(i => i.selected).map(itemX => {
+		VoteRecords.push({
+		  OptionsId:itemX.Id,
+		  ProjectId:item.Id,
+		}); 
 	  })
-
-	  post(AddVoteRecordUrl,optionsList,this)
-      .then((res) => {
-		console.log(res);
-        if (res) {
-		  let result = '你把票投给了 ';
-		  vote.shortList.map((item) => {
-			if(item.selected)result += item.name + '，';
-			return false;
-		  })
-		  Toast.info(result.substring(0,result.length - 1) + ' 。');
-		  this.getVoteData()
-        } else {
-          Toast.info('投票失败');
+	  data.push({
+		Id:item.Id,
+		VoteRecords:JSON.stringify(VoteRecords),
+	  });
+	});
+    //console.log(data);
+	//console.log(JSON.stringify(data));
+	//return false;
+	let text = '您确定要投票吗？';
+	Modal.alert('提示',text,[
+	  {text:'否',onPress: () => {
+		this.setState({
+		  submitLoading:false,
+		})
+	  }},
+	  {text:'是',onPress: () => {
+		post(url,data).then((res) => {
+			//console.log(res);
+		  if (res.Data === 'OK') {
+			Toast.info('投票成功');
+			this.getVoteData()
+		  } else {
+			Toast.info('投票失败');
+		  }
 		  this.setState({
 		    submitLoading:false,
 		  });
-        }
-      })
-      .catch((err) => console.error(err));
-	}
+		})
+	  }},
+	])
   }
   
-  renderShortList = (vote) => {
-	if(Date.parse(vote.endDate) <= Date.now()){
+  voteGiveup = () => {
+	const {voteId} = this.state;
+	let url = sessionStorage.apiUrl + '/api/Vote/Giveup?keyValue=' + voteId;
+	let text = '您确定要放弃投票吗？';
+	Modal.alert('提示',text,[
+	  {text:'否',onPress: () => {}},
+	  {text:'是',onPress: () => {
+		post(url).then((res) => {
+		  if (res.Data === 'OK') {
+			Toast.info('放权投票成功');
+			this.getVoteData()
+		  } else {}
+		})
+	  }},
+	])
+	  
+  }
+  renderSubproject = () => {
+	const {vote} = this.state;
+	if(false || Date.parse(vote.EndTime) <= Date.now()){
 	  return (
-	    <div style={style.shortList}>
-	      {vote.shortList.sort((a,b) => b.votes-a.votes).map((item,index) => 
-	      <div key={'shortItem'+index} style={style.shortItem}>
-	        {index+1}、{item.name}
-	        <div style={style.shortItemVotesBox}>票数：<span style={style.shortItemVotes}>{item.votes}</span></div>
-	      </div>
-	      )}
-	    </div>
-	  );
+		  <div>
+		   {vote.subproject.map((item,index) => 
+			  <div key={index} className='voteCBox'>
+				<div className='title'>{(index + 1 )+'、'+item.Title}</div>
+				<VoteOptionResult 
+				  VoteOptions={item.VoteOptions}
+				  VoterCount={vote.VoterCount}
+				/>
+				<div className='isValid'>
+				  <img src={item.IsValid?selImg.statusValid:selImg.statusInvalid} />
+				</div>
+			  </div>
+			)}
+		  </div>
+		);
 	}
 	return (
-	  <CheckList shortList={vote.shortList} maximum={vote.maximum} toParent={this.getShortList.bind(this)} />
+	  <div>
+	   {vote.subproject.map((item,index) => 
+	  	  <div key={index} className='voteCBox'>
+	  	    <div className='title'>{(index + 1 )+'、'+item.Title}</div>
+	  	    <CheckList 
+	  	  	  checkList={item.VoteOptions}
+	  	  	  maximum={item.VoteCount}
+	  	  	  toParent={this.getVoteOptions.bind(this,index)}
+	  	  	  selectable={item.selectable}
+	  	    />
+	  	  </div>
+	    )}
+	  </div>
 	);
-	
   }
   render() {
-
 	if(this.state.loading){
   	  return (
   	  	<div>loading</div>
   	  )
     }
-	const {vote} = this.state;
-	let votesSum = 0;
-	vote.shortList.forEach((item,index) => {
-	  votesSum += item.votes;
-	})
-	
+	const {vote,submitLoading} = this.state;
     return (
 	  <div>
 		<TopNavBar title='投票页面' showLC/>
-		<div className='formBox' style={{backgroundColor:'#f8f8f8',bottom:vote.voted?0:' ',padding:'0 20px'}}>
-	      <div style={style.title}>{vote.title}</div>
-	      <div style={style.titleUnderLine}></div>
-	      <div style={style.describe}>
-	        {vote.describe} <br />
-	        （说明：点击选项进行投票，结果于投票后可见）
-	      </div>
+		<div className='formBox' style={{padding:'10px 20px',backgroundColor:'#fafafa'}}>
+	      <div style={{fontSize:20,marginBottom:3}}>{vote.Title}</div>
+	      <div style={{marginBottom:8}}>
+		    <span style={{color:'#1a8ffe',marginRight:10}}>{vote.CreatorName}</span>
+			<span style={{color:'#008000',marginRight:10}}>{vote.StatusStr}</span>
+			<span style={{display:'none'}}>{selFunc.formatDate(vote.EndTime,'-')}</span>
+		  </div>
+	      <div style={{textIndent:'2em',marginBottom:10}}>{vote.Content} </div>
 		  <ImgList imgList={vote.imgSrcList} />
-	      <div style={style.info}>
-	        <div style={style.infoItem}>候选数量<br />{vote.shortList.length}</div>
-	        <div style={style.infoItem}>累计投票<br />{votesSum}</div>
-	        <div style={style.infoItem}>关注度<br />{vote.AttentionDegree}</div>
+		  {this.renderSubproject()}
+	      <div className='operationBtns' style={{display:(vote.Isgiveup === '已弃票' || vote.Isvoted === '已投票' || Date.parse(vote.EndTime) <= Date.now())?'none':''}}>
+		    <WhiteSpace size='md' />
+		    <Button 
+		  	  loading={this.state.submitLoading} 
+			  type="primary"
+		  	  onClick={this.submitBtnClick}
+		  	>投票</Button>
+		    <WhiteSpace size='md' />
+		    <Button
+		  	  onClick={this.voteGiveup}
+			>弃权</Button>
+		    <WhiteSpace size='md' />
 	      </div>
-	      {this.renderShortList(vote)}
-	      <div style={style.endDate}>投票截止日期：{selFunc.formatDate(vote.endDate,'-')}</div>
-	      <div className='operationBtns' style={{display:(vote.voted || Date.parse(vote.endDate) <= Date.now())?'none':''}}>
-		    <WingBlank>
-		      <WhiteSpace size='md' />
-		      <Button 
-		  	    style={style.btn} 
-		  	    activeStyle={style.btnActive}
-		  	    onClick={this.submitBtnClick}
-		  	  >投票</Button>
-		      <WhiteSpace size='md' />
-		      <Link to='/vote/list' className='am-button'><span>取 消</span></Link>
-		      <WhiteSpace size='md' />
-		    </WingBlank>
+	      <div className='operationBtns' style={{display:(vote.Isgiveup === '已弃票'?'':'none')}}>
+		    <WhiteSpace size='md' />
+		    <Button type="primary" disabled>已弃权</Button>
+		    <WhiteSpace size='md' />
 	      </div>
 		</div>
       </div>
     );
   }
 }
-const style ={
-  title:{
-  	textAlign:'center',
-	lineHeight:'28px',
-  	fontSize:16,
-  	marginTop:16,
-  },
-  titleUnderLine:{
-  	borderTop:'1px solid #aaa',
-  	width:80,
-  	margin:'5px auto',
-  	height:5
-  },
-  img:{
-  	width:'100%',
-  },
-  describe:{
-  	color:'#999',
-  	fontSize:16,
-  	textIndent:'2em',
-  	lineHeight:'25px',
-  	marginTop:10
-  },
-  info:{
-  	backgroundColor:'white',
-	padding:'12px 0',
-	display:'none',
-	margin:'10px 0',
-	overflow:'hidden'
-  },
-  infoItem:{
-  	width:'33%',
-  	fontSize:16,
-	textAlign:'center',
-	'float':'left',
-	lineHeight:'30px'
-  },	
-  shortItem:{
-  	backgroundColor:'white',
-  	fontSize:18,
-	padding:10,
-	margin:'10px 0 0 0',
-	lineHeight:'30px',
-	position:'relative'
-  },
-  shortItemVotesBox:{
-  	color:'#a17e7e',
-  	position:'absolute',
-	right:10,
-  	fontSize:14,
-	'top':10,
-  },
-  shortItemVotes:{
-  	backgroundColor:'#a17e7e',
-  	color:'#fff',
-	textAlign:'center',
-  	minWidth:60,
-  	fontSize:12,
-	display:'inline-block'
-  },
-  submitBtn:{
-  	backgroundColor:'#0cbc0a',
-	color:'white',
-	marginTop:10,
-  },
-  endDate:{
-	textAlign:'right',
-	color:'#999',
-	lineHeight:'40px',
-  },
-  userList:{
-	backgroundColor:'white',
-	marginBottom:15,
-	overflow:'hidden'
-  },
-  userItemImg:{
-	height:30,
-	width:30,
-	borderRadius:'50%',
-	'float':'left',
-	margin:'5px'
-  },
-  btn:{
-    backgroundColor:'#18a3fe',
-    color:'#fff',
-  },
-  btnActive:{
-    backgroundColor:'gray'
-  },
-}
+
 export default VotePage;

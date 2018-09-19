@@ -15,7 +15,7 @@ class ComplaintList extends Component {
 	let isManage = props.match.params.isManage === '1' ? true : false;
     this.state = { 
 	  keyWords:'',
-  	  listType:isManage?'ToTransferList':'List',
+  	  listType:isManage?'ToAllList':'List',
 	  rows:5,
 	}
   }
@@ -30,10 +30,11 @@ class ComplaintList extends Component {
   }
   render() {
     const {keyWords,rows} = this.state;
-    let {listType} = this.state;
 	let isManage = this.props.match.params.isManage === '1' ? true : false;
+	let listType = isManage?'ToAllList':'List';
 	let url = sessionStorage.apiUrl + '/api/Complaint/' + listType +'?keyword=' + keyWords + '&pagination.rows=' + rows +'&pagination.page=pageIndex&pagination.sidx=CREATOR_TIME&pagination.sord=DESC';
 	//alert(listType)
+	//console.log(url);
 	const tabList = [
 	  {value:'ToTransferList',title:'待转发'},
 	  {value:'ToConfirmList',title:'待确认'},
@@ -45,7 +46,7 @@ class ComplaintList extends Component {
 	  <div>
 		<TopNavBar showLC back='0' title={isManage?'待办投诉':'我的投诉'}  addPage='/complaint/add'/>
 		<div className='mainBox' style={{bottom:0}}>
-		  <div className='tabMenu' style = {{display:isManage?'':'none'}}>
+		  <div className='tabMenu' style = {{display:'none'}}>
 		    {tabList.map(item =>
 			  <div key={item.value} onClick={this.setListType.bind(this,item.value)}>
 			    <span className={item.value === listType?'tabActive':''}>
@@ -62,7 +63,7 @@ class ComplaintList extends Component {
 			onClear={keyWords => {this.setState({keyWords})}}
 		  />
 		  <ListView
-		    style = {{top:isManage?50:0}}
+		    style = {{top:0}}
 		    className = 'listBox' 
 			page = {this}
 			url={url}

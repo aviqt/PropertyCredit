@@ -143,7 +143,7 @@ class Login extends Component {
 		    ></InputItem>
 		  </List>
 		  <WingBlank className='loginOther'>
-			<Link to='/login'>忘记密码？</Link>
+			<Link to='/login/byMobile'>用手机号登录</Link>
 		  </WingBlank>
 	      <div className='operationBtns'>
 		    <WingBlank>
@@ -155,7 +155,7 @@ class Login extends Component {
 				loading={submitLoading}
 		  	  >{submitLoading?'登录中...':'登录'}</Button>
 		      <WhiteSpace size='md' />
-		      <Link to='/register' style={{display:'none'}} className='am-button'><span>还没有账号？立即注册</span></Link>
+		      <Link to='/register' className='am-button' style={{display:'none'}}><span>还没有账号？立即注册</span></Link>
 		      <WhiteSpace size='md' />
 		    </WingBlank>
 	      </div>

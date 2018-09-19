@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom'
 import {selFunc} from '../../utils/func';
 import PicView from './picView';
+import {selImg} from '../../utils/config';
 
 
 
@@ -14,24 +15,25 @@ class ImgList extends Component {
 	}
   }
   render() {
-	const {imgList} = this.props;
+	const {imgList,shieldClick} = this.props;
     let cols = imgList.length >= 3 ? 3 : imgList.length; 
     let imgSizeWidth = (window.innerWidth - 40 - ((cols - 1) * 5) ) / cols ;
     let imgSizeHeight = imgList.length !== 1 ? imgSizeWidth:'auto' ;
-    if(cols !== 1)imgSizeWidth = (( 100/cols - (cols-1)/cols ) + '%'); 
+    let imgSizeWidthPer = (( 100/cols - (cols-1)/cols ) + '%'); 
     //console.log(imgList);
-	if(imgList.length===0) return false;
+	if(imgList.length === 0) return false;
     return (
   	  <div className='imgList'>
   	    {imgList.map((item,index) => 
   	  	  <div 
   	  	    className='item' 
   	  	    key={index} 
-  	  	    onClick={()=>{if(PicView)selFunc.modal(PicView,{imgUrl:item.src})}} 
-  	  	    style={{width:imgSizeWidth,height:imgSizeHeight}}
+  	  	    onClick={()=>{if(PicView && !shieldClick)selFunc.modal(PicView,{imgUrl:item.src})}} 
+  	  	    style={{width:imgSizeWidthPer,height:imgSizeHeight}}
   	  	  >
   	  	  <div style={{width:imgSizeWidth,height:imgSizeHeight}}>
-  	  	    <img src={item.src} alt={item.name} />
+  	  	    <img src={item.src} alt={item.name} onError={selFunc.handleImageErrored.bind(this,selImg.imgLoadError)} />
+			
   	  	  </div>
   	  	  </div>
   	    )}

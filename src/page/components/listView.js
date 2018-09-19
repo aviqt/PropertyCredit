@@ -50,7 +50,7 @@ class ListView extends Component{
 	});
 	//console.log(url);
 	get(url).then((res) => {
-	  //console.log(res);
+	  //console.log(res.Data.rows);
 	  if(res.Data.rows){
 		newList = res.Data.rows;
 	  }else{

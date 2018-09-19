@@ -3,6 +3,7 @@ import { Switch, Route } from 'react-router-dom'
 
 import Index from './page/index';
 import Login from './page/login';
+import LoginByMobile from './page/loginByMobile';
 import Register from './page/register';
 import BindArea from './page/bindArea';
 import BindAreaInfo from './page/bindAreaInfo';
@@ -23,6 +24,10 @@ import ProjectDetail from './page/projectDetail';
 import PublicityList from './page/publicityList';
 import PublicityDetail from './page/publicityDetail';
 import PersonalCenter from './page/personalCenter';
+
+import CircleList from './page/circleList';
+
+
 
 import Complaint from './page/complaint';
 import ComplaintAdd from './page/complaintAdd';
@@ -85,6 +90,7 @@ class App extends Component {
     let noLoginPage = [
       '/vote/list/all',
       '/vote/page',
+      '/login/byMobile',
       'register',
   	  'login'
     ];
@@ -111,6 +117,7 @@ class App extends Component {
 		  
 		  
 		  <Route path='/index' component={Index}/>
+		  <Route path='/login/byMobile' component={LoginByMobile}/>
 		  <Route path='/login' component={Login}/>
 		  <Route path='/register' component={Register}/>
 		  <Route path='/bindArea' component={BindArea}/>
@@ -131,6 +138,10 @@ class App extends Component {
 		  <Route path='/qualityEvaluation/detail/:id' component={QualityEvaluationDetail}/>
 		  <Route path='/qualityEvaluation/list' component={QualityEvaluationList}/>
 		  <Route path='/qualityEvaluation/add' component={QualityEvaluationAdd}/>
+		  
+		  
+		  
+		  <Route path='/circle/list' component={CircleList}/>
 		  
 		  
 		  
